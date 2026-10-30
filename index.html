@@ -846,43 +846,19 @@ document.querySelectorAll('#perPills button').forEach(b=>b.onclick=()=>{
   banner();renderAll();
 });
 ['fPer','fNiv','fTur','fCol','fData','fMes'].forEach(id=>document.getElementById(id).onchange=e=>{
-  if(id==='fPer')state.per=e.target.value;if(id==='fNiv')state.niv=e.target.value;
-  if(id==='fTur')state.tur=e.target.value;if(id==='fCol')state.col=e.target.value;
-  if(id==='fData'){state.data=e.target.value;document.getElementById('fMes').value=state.data.slice(0,7);
-(async()=>{
-  const msg='<div class="panel"><p class="n">Carregando dados do Supabase…</p></div>';
-  ['visao','ponto','logs','prod','impr','encer','colab','rank','atencao'].forEach(k=>{const el=document.getElementById(k);if(el)el.innerHTML=msg});
-  try{
-    await carregar();
-    state.data=DATAS[DATAS.length-1];state.mes=state.data.slice(0,7);
-    document.getElementById('fData').value=state.data;
-    document.getElementById('fMes').value=state.mes;
-    document.getElementById('fTur').innerHTML='<option value="">Todos os turnos</option>'+turnos.map(t=>`<option>${esc(t)}</option>`).join('');
-    document.getElementById('fCol').innerHTML='<option value="">Todos os colaboradores</option>'+nomes.map(t=>`<option>${esc(t)}</option>`).join('');
-    await Promise.all([loadObs(),loadNU()]);
-    renderAll();
-  }catch(e){
-    ['visao'].forEach(k=>document.getElementById(k).innerHTML='<div class="panel"><p class="n" style="color:var(--bad)">Não foi possível carregar os dados: '+esc(e.message)+'</p></div>');
+  const v=e.target.value;
+  if(id==='fPer')state.per=v;
+  if(id==='fNiv')state.niv=v;
+  if(id==='fTur')state.tur=v;
+  if(id==='fCol')state.col=v;
+  if(id==='fData'){
+    if(v){state.data=v;state.mes=v.slice(0,7);document.getElementById('fMes').value=state.mes;}
+    else{e.target.value=state.data}
   }
-})();return}
-  if(id==='fMes'){state.mes=e.target.value;state.data=e.target.value+'-01';document.getElementById('fData').value=state.data;if(state.per==='dia')state.per='mes';document.getElementById('fPer').value=state.per;
-(async()=>{
-  const msg='<div class="panel"><p class="n">Carregando dados do Supabase…</p></div>';
-  ['visao','ponto','logs','prod','impr','encer','colab','rank','atencao'].forEach(k=>{const el=document.getElementById(k);if(el)el.innerHTML=msg});
-  try{
-    await carregar();
-    state.data=DATAS[DATAS.length-1];state.mes=state.data.slice(0,7);
-    document.getElementById('fData').value=state.data;
-    document.getElementById('fMes').value=state.mes;
-    document.getElementById('fTur').innerHTML='<option value="">Todos os turnos</option>'+turnos.map(t=>`<option>${esc(t)}</option>`).join('');
-    document.getElementById('fCol').innerHTML='<option value="">Todos os colaboradores</option>'+nomes.map(t=>`<option>${esc(t)}</option>`).join('');
-    await Promise.all([loadObs(),loadNU()]);
-    renderAll();
-  }catch(e){
-    ['visao'].forEach(k=>document.getElementById(k).innerHTML='<div class="panel"><p class="n" style="color:var(--bad)">Não foi possível carregar os dados: '+esc(e.message)+'</p></div>');
-  }
-})();return}
-  banner();renderAll();});
+  if(id==='fMes'&&v){state.mes=v;state.data=v+'-01';document.getElementById('fData').value=state.data}
+  document.getElementById('fPer').value=state.per;
+  banner();renderAll();
+});
 
 function syncTopo(){
   const ds=fJ().map(r=>r.data).sort();
@@ -894,7 +870,8 @@ function syncTopo(){
 function renderAll(){
   syncTopo();
  if(!fJ().length){
-   const msg='<div class="missing">Sem registros para o recorte selecionado ('+(state.per==='dia'?state.data:state.per)+'). A base tem apenas 29/10/2026 carregado.</div>';
+   const _d=DATAS.slice().sort();
+   const msg='<div class="missing">Sem registros para o recorte selecionado ('+(state.per==='dia'?dBR(state.data):state.per)+'). A base carregada cobre '+dBR(_d[0]||'')+' a '+dBR(_d[_d.length-1]||'')+'.</div>';
    ['visao','ponto','logs','prod','impr','encer','colab','rank','atencao'].forEach(k=>document.getElementById(k).innerHTML=msg);
    return;
  }
