@@ -27,6 +27,7 @@ h1{font-size:18px;margin:0;letter-spacing:-.2px}h1 span{color:var(--brand)}
 .pills button:hover{background:var(--surface);border-color:var(--line);color:var(--fg)}
 .pills button.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
 .fsep{width:1px;height:22px;background:var(--line);margin:0 4px}
+.rlabel{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
 .filters label{display:none}
 select{font-family:inherit;font-size:12px;font-weight:600;padding:7px 11px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--fg);cursor:pointer}
 input[type=date]{font-family:inherit;font-size:12px;padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--fg)}
@@ -136,21 +137,14 @@ footer{margin-top:20px;font-size:11px;color:var(--muted);border-top:1px solid va
 </header>
 
 <div class="filters">
-  <div class="pills" id="perPills">
-    <button data-per="dia">Dia</button>
-    <button data-per="sem" class="on">Semana</button>
-    <button data-per="qui">Quinzena</button>
-    <button data-per="mes">Mês</button>
-    <button data-per="tri">Trimestre</button>
-    <button data-per="ano">Ano</button>
-  </div>
+  <span class="rlabel">de</span>
+  <input type="date" id="fDe" value="2026-10-01" title="Data inicial">
+  <span class="rlabel">até</span>
+  <input type="date" id="fAte" value="2026-10-29" title="Data final">
   <div class="fsep"></div>
   <select id="fTur"><option value="">Todos os turnos</option></select>
   <select id="fCol"><option value="">Todos os colaboradores</option></select>
   <select id="fNiv"><option value="col">Consolidado por colaborador</option><option value="tur">Consolidado por turno</option><option value="equ">Consolidado por equipe</option></select>
-  <input type="date" id="fData" value="2026-10-29" title="Data de referência">
-  <input type="month" id="fMes" value="2026-10" style="display:none">
-  <select id="fPer" style="display:none"><option value="dia">dia</option><option value="sem" selected>sem</option><option value="qui">qui</option><option value="mes">mes</option><option value="tri">tri</option><option value="ano">ano</option></select>
 </div>
 <div id="banner"></div>
 
@@ -248,18 +242,9 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 
 /* ---------- filtros ---------- */
 let DATAS=[];
-const state={per:'sem',niv:'col',tur:'',col:'',data:DATAS[DATAS.length-1]||'2026-10-29',mes:(DATAS[DATAS.length-1]||'2026-10').slice(0,7)};
-const anchor=()=>new Date(state.data+'T12:00:00');
-function inPer(d){
-  if(!d) return false;
-  if(state.per==='dia') return d===state.data;
-  if(state.per==='mes') return d.slice(0,7)===state.data.slice(0,7);
-  if(state.per==='ano') return d.slice(0,4)===state.data.slice(0,4);
-  const dias={sem:7,qui:15}[state.per];
-  if(dias){const x=new Date(d+'T12:00:00');const a=anchor();const ini=new Date(a.getTime()-(dias-1)*864e5);return x>=ini&&x<=a}
-  if(state.per==='tri'){const x=new Date(d+'T12:00:00');const a=anchor();const ini=new Date(a);ini.setMonth(ini.getMonth()-2);ini.setDate(1);return x>=ini&&x<=a}
-  return d===state.data;
-}
+const state={de:'2026-10-01',ate:'2026-10-29',niv:'col',tur:'',col:''};
+const rng=()=>state.de<=state.ate?{a:state.de,b:state.ate}:{a:state.ate,b:state.de};
+function inPer(d){if(!d)return false;const r=rng();return d>=r.a&&d<=r.b}
 let turnos=[];
 let nomes=[];
 document.getElementById('fTur').innerHTML='<option value="">Todos</option>'+turnos.map(t=>`<option>${esc(t)}</option>`).join('');
@@ -268,15 +253,14 @@ const fJ=()=>J.filter(r=>inPer(r.data)&&(!state.tur||r.turno===state.tur)&&(!sta
 const fP=()=>P.filter(p=>inPer(p.data)&&(!state.tur||(J.find(r=>r.agente===p.agente)||{}).turno===state.tur)&&(!state.col||p.agente===state.col));
 
 function banner(){
-  const el=document.getElementById('banner');
-  if(state.per!=='dia'){
-    const nome={sem:'semanal',qui:'quinzenal',mes:'mensal',tri:'trimestral',ano:'anual'}[state.per];
-    const ds=DATAS.slice().sort();const ini=ds[0]||'',fim=ds[ds.length-1]||'';
-    const uteis=ds.filter(d=>{const w=new Date(d+'T12:00:00').getDay();return w!==0&&w!==6}).length;
-    el.innerHTML=`<div class="banner"><b>Visão ${nome}.</b> Base carregada de ${dBR(ini)} a ${dBR(fim)} (${uteis} dias úteis). O recorte ${nome} soma os dias disponíveis no intervalo, e o comparativo usa o período anterior quando ele já está na base.</div>`;
-  } else if(state.niv==='equ'){
-    el.innerHTML='<div class="banner"><b>Equipe = CSC.</b> Todos os 17 colaboradores pertencem ao mesmo setor, então a visão por equipe coincide com o consolidado. A separação por turno está disponível no filtro de nível.</div>';
-  } else el.innerHTML='';
+  const el=document.getElementById('banner');if(!el)return;
+  const r=rng();const ds=DATAS.slice().sort();
+  const sel=ds.filter(d=>d>=r.a&&d<=r.b);
+  const uteis=sel.filter(d=>{const w=new Date(d+'T12:00:00').getDay();return w!==0&&w!==6}).length;
+  const base=ds.length?(' Base carregada: '+dBR(ds[0])+' a '+dBR(ds[ds.length-1])+'.'):'';
+  let h=`<div class="banner"><b>Recorte de ${dBR(r.a)} a ${dBR(r.b)}.</b> ${sel.length} dia(s) com dados no intervalo, sendo ${uteis} dia(s) útil(eis).${base} O comparativo usa os ${sel.length} dia(s) imediatamente anteriores a ${dBR(r.a)} quando já estão na base.</div>`;
+  if(state.niv==='equ')h+='<div class="banner"><b>Equipe = CSC.</b> Todos os 17 colaboradores pertencem ao mesmo setor, então a visão por equipe coincide com o consolidado. A separação por turno está no filtro de nível.</div>';
+  el.innerHTML=h;
 }
 
 /* ---------- helpers de UI ---------- */
@@ -359,7 +343,7 @@ function renderVisao(){
         return '<span class="bdg warn">Verificar jornada</span>'})();
       return `<tr style="cursor:pointer" onclick="openColab('${esc(r.agente)}')"><td><b>${esc(r.agente)}</b></td><td class="num">${r.hEnt}–${r.hSai}</td><td class="num">${hhmm(r.login)}–${hhmm(r.logout)}</td><td class="num">${HM(r.produtiva)}</td><td class="num">${HM(r.improdutiva)}</td><td class="num">${PC(r.cumpr)}</td><td>${bd}</td></tr>`}).join('')
     +'</tbody></table>','<span class="n">10 casos prioritários · clique para abrir a linha do tempo</span>');
-  h+='<div class="foot-note">Painel com dados reais extraídos da Matrix, recorte '+dia(new Date(state.data+'T12:00:00'))+'. Entrada considerada é o primeiro log do dia; pausas online sem interrupção contam como produtivas.</div>';
+  h+='<div class="foot-note">Painel com dados reais extraídos da Matrix, recorte de '+dBR(rng().a)+' a '+dBR(rng().b)+'. Entrada considerada é o primeiro log do dia; pausas online sem interrupção contam como produtivas.</div>';
   document.getElementById('visao').innerHTML=novosHtml+h;
 
   // timeline por colaborador
@@ -548,7 +532,7 @@ function obsPanel(js){
   h+='<div style="overflow-x:auto"><table><thead><tr><th>Colaborador</th><th>Ocorrência</th><th>Motivo</th><th>Observação</th><th></th></tr></thead><tbody>';
   alvo.forEach(r=>{
     const o=obsOf(r.agente);const motivo=r.conectado===null?'falta':r.saidaDif<-300?'saida_antecipada':'atraso';
-    h+=`<tr class="obsrow" data-ag="${esc(r.agente)}" data-cod="${r.cod||''}">
+    h+=`<tr class="obsrow" data-ag="${esc(r.agente)}" data-cod="${r.cod||''}" data-d="${esc(r.data||'')}">
     <td>${esc(r.agente)}</td>
     <td class="num">${r.conectado===null?'sem log':(r.saidaDif<-300?'saída '+HM(r.saidaDif):'atraso '+HM(r.atraso))}</td>
     <td><select class="obs-m">${MOTIVOS.map(m=>`<option value="${m[0]}" ${o.motivo===m[0]?'selected':''}>${m[1]}</option>`).join('')}</select></td>
@@ -594,11 +578,11 @@ function renderNovos(){
 }
 
 async function loadObs(){
-  try{const r=await fetch(`${SB}/csc_jornada_observacao?select=agente,motivo,texto,data&data=eq.${state.data}`,{headers:{apikey:AK,Authorization:'Bearer '+AK}});OBS=await r.json();}
+  try{const r=await fetch(`${SB}/csc_jornada_observacao?select=agente,motivo,texto,data&data=gte.${rng().a}&data=lte.${rng().b}&order=data.desc`,{headers:{apikey:AK,Authorization:'Bearer '+AK}});OBS=await r.json();}
   catch(e){OBS=[]}
 }
 async function saveObs(btn){
-  const row=btn.closest('.obsrow');const agente=row.dataset.ag;const cod=row.dataset.cod;
+  const row=btn.closest('.obsrow');const agente=row.dataset.ag;const cod=row.dataset.cod;const dref=row.dataset.d||rng().b;
   const motivo=row.querySelector('.obs-m').value;const texto=row.querySelector('.obs-t').value.trim();
   const st=row.querySelector('.obs-s');
   if(!texto){st.innerHTML='<span class="tag t-warn">descreva a observação</span>';return}
@@ -606,10 +590,10 @@ async function saveObs(btn){
   try{
     const r=await fetch(`${SB}/csc_jornada_observacao?on_conflict=data,agente`,{method:'POST',
       headers:{apikey:AK,Authorization:'Bearer '+AK,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'},
-      body:JSON.stringify([{data:state.data,cod_matrix:cod?+cod:null,agente,motivo,texto,autor:'gestao',atualizado_em:new Date().toISOString()}])});
+      body:JSON.stringify([{data:dref,cod_matrix:cod?+cod:null,agente,motivo,texto,autor:'gestao',atualizado_em:new Date().toISOString()}])});
     if(!r.ok) throw new Error(await r.text());
     const [rec]=await r.json();
-    OBS=OBS.filter(x=>x.agente!==agente).concat([{agente,motivo,texto,data:state.data}]);
+    OBS=OBS.filter(x=>!(x.agente===agente&&x.data===dref)).concat([{agente,motivo,texto,data:dref}]);
     st.innerHTML='<span class="tag t-ok">salvo</span>';
   }catch(e){st.innerHTML='<span class="tag t-bad">falha ao salvar</span>';}
 }
@@ -842,25 +826,13 @@ function go(t){document.querySelectorAll('nav.tabs button').forEach(b=>b.classLi
  document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===t));window.scrollTo({top:0,behavior:'smooth'})}
 function openColab(n){go('colab');renderColab(n)}
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.t));
-document.querySelectorAll('#perPills button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('#perPills button').forEach(x=>x.classList.toggle('on',x===b));
-  state.per=b.dataset.per;
-  if(b.dataset.per!=='dia'&&!document.getElementById('fData').value)document.getElementById('fData').value=state.data;
-  document.getElementById('fPer').value=b.dataset.per;
-  banner();renderAll();
-});
-['fPer','fNiv','fTur','fCol','fData','fMes'].forEach(id=>document.getElementById(id).onchange=e=>{
+['fNiv','fTur','fCol','fDe','fAte'].forEach(id=>document.getElementById(id).onchange=e=>{
   const v=e.target.value;
-  if(id==='fPer')state.per=v;
   if(id==='fNiv')state.niv=v;
   if(id==='fTur')state.tur=v;
   if(id==='fCol')state.col=v;
-  if(id==='fData'){
-    if(v){state.data=v;state.mes=v.slice(0,7);document.getElementById('fMes').value=state.mes;}
-    else{e.target.value=state.data}
-  }
-  if(id==='fMes'&&v){state.mes=v;state.data=v+'-01';document.getElementById('fData').value=state.data}
-  document.getElementById('fPer').value=state.per;
+  if(id==='fDe'&&v)state.de=v;
+  if(id==='fAte'&&v)state.ate=v;
   banner();renderAll();
 });
 
@@ -869,13 +841,13 @@ function syncTopo(){
   const ano=ds.length?ds[ds.length-1].slice(0,4):'';
   const rng=ds.length?(ds[0]===ds[ds.length-1]?dBR(ds[0])+'/'+ano:dBR(ds[0])+' a '+dBR(ds[ds.length-1])+'/'+ano):'sem base';
   const el=document.getElementById('bLive');if(el)el.textContent='DADOS REAIS · '+rng;
-  document.querySelectorAll('#perPills button').forEach(x=>x.classList.toggle('on',x.dataset.per===state.per));
 }
 function renderAll(){
   syncTopo();
  if(!fJ().length){
    const _d=DATAS.slice().sort();
-   const msg='<div class="missing">Sem registros para o recorte selecionado ('+(state.per==='dia'?dBR(state.data):state.per)+'). A base carregada cobre '+dBR(_d[0]||'')+' a '+dBR(_d[_d.length-1]||'')+'.</div>';
+   const _r=rng();
+   const msg='<div class="missing">Sem registros entre '+dBR(_r.a)+' e '+dBR(_r.b)+'. A base carregada cobre '+dBR(_d[0]||'')+' a '+dBR(_d[_d.length-1]||'')+'.</div>';
    ['visao','ponto','logs','prod','impr','encer','colab','rank','atencao'].forEach(k=>document.getElementById(k).innerHTML=msg);
    return;
  }
@@ -887,9 +859,10 @@ banner();
   ['visao','ponto','logs','prod','impr','encer','colab','rank','atencao'].forEach(k=>{const el=document.getElementById(k);if(el)el.innerHTML=msg});
   try{
     await carregar();
-    state.data=DATAS[DATAS.length-1];state.mes=state.data.slice(0,7);
-    document.getElementById('fData').value=state.data;
-    document.getElementById('fMes').value=state.mes;
+    const _ds=DATAS.slice().sort();
+    if(_ds.length){state.de=_ds[0];state.ate=_ds[_ds.length-1]}
+    document.getElementById('fDe').value=state.de;
+    document.getElementById('fAte').value=state.ate;
     document.getElementById('fTur').innerHTML='<option value="">Todos os turnos</option>'+turnos.map(t=>`<option>${esc(t)}</option>`).join('');
     document.getElementById('fCol').innerHTML='<option value="">Todos os colaboradores</option>'+nomes.map(t=>`<option>${esc(t)}</option>`).join('');
     await Promise.all([loadObs(),loadNU()]);
