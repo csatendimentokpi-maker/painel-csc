@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão de Logs, Jornada e Pausas — CSC Arroba</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+--brand:#0d6efd;--brand-2:#1a2b4d;--brand-3:#fbb900;--ink:#1a2b4d;
+--bg:#f4f7f9;--surface:#ffffff;--surface2:#f7f9fc;--line:#e6ebf1;--fg:#1a2b4d;--muted:#6c757d;
+--ok:#198754;--ok-soft:#d4edda;--warn:#e67e22;--warn-soft:#fff3e0;
+--bad:#dc3545;--bad-soft:#f8d7da;--acc-soft:#e7f1ff;--radius:10px;
+--blue:#0d6efd;--green:#198754;--orange:#fd7e14;--purple:#6f42c1;
+}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{color:var(--fg);background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto;padding:26px 22px 60px}
+header.top{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+h1{font-size:18px;margin:0;letter-spacing:-.2px}h1 span{color:var(--brand)}
+.sub{color:var(--muted);font-size:12px;margin-top:2px}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:11.5px;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--brand)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:transparent;border:0;border-radius:0;padding:0;margin:0 0 14px}
+.pills{display:flex;flex-wrap:wrap;gap:4px;background:transparent}
+.pills button{font-family:inherit;font-size:12px;font-weight:600;color:var(--muted);background:transparent;border:1px solid transparent;border-radius:7px;padding:7px 13px;cursor:pointer}
+.pills button:hover{background:var(--surface);border-color:var(--line);color:var(--fg)}
+.pills button.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+.fsep{width:1px;height:22px;background:var(--line);margin:0 4px}
+.filters label{display:none}
+select{font-family:inherit;font-size:12px;font-weight:600;padding:7px 11px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--fg);cursor:pointer}
+input[type=date]{font-family:inherit;font-size:12px;padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--fg)}
+.banner{background:var(--warn-soft);border:1px solid var(--line);border-left:3px solid var(--brand-3);border-radius:10px;padding:9px 12px;font-size:12px;margin-bottom:12px}
+.banner b{font-weight:700}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:16px}
+nav.tabs button{background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);padding:11px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;letter-spacing:.2px}
+nav.tabs button.on{color:var(--brand-2);border-bottom-color:var(--brand)}
+section{display:none}section.on{display:block}
+.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 13px;cursor:pointer;transition:.15s}
+.card:hover{border-color:var(--brand);transform:translateY(-1px)}
+.card.static{cursor:default}.card.static:hover{transform:none;border-color:var(--line)}
+.k{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
+.v{font-size:21px;font-weight:700;letter-spacing:-.6px;margin-top:4px}
+.v.sm{font-size:15px}.n{font-size:11px;color:var(--muted);margin-top:2px}
+.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.ok{color:var(--ok)}.v.brand{color:var(--brand-2)}
+.crumb{font-size:10px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px}
+.hdr{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.hdr h1{font-size:27px;line-height:1.12;color:var(--brand-2);font-weight:800;letter-spacing:-.7px;margin:0}
+.hdr p{margin:5px 0 0;color:var(--muted);font-size:12.5px;max-width:620px}
+.badge-live{background:#fff3cd;color:#856404;border-radius:7px;padding:7px 12px;font-size:10px;font-weight:800;letter-spacing:.7px;white-space:nowrap;text-transform:uppercase}
+@media(min-width:900px){.kpi-grid{grid-template-columns:repeat(3,1fr)!important}}
+.kpi-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;cursor:pointer;transition:.15s;box-shadow:0 1px 3px rgba(16,24,40,.05);position:relative}
+.kpi:hover{border-color:var(--brand);box-shadow:0 4px 14px rgba(13,110,253,.10);transform:translateY(-1px)}
+.kpi .ic{width:26px;height:26px;border-radius:7px;background:var(--acc-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.kpi .kt{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
+.kpi .kv{font-size:28px;font-weight:800;letter-spacing:-1.1px;margin-top:5px;color:var(--brand-2)}
+.kpi .kf{font-size:11px;color:var(--muted);margin-top:4px}
+.kpi .kf.ok{color:var(--ok);font-weight:700}.kpi .kf.warn{color:var(--warn);font-weight:700}.kpi .kf.bad{color:var(--bad);font-weight:700}
+.donut-wrap{position:relative}
+.donut-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.donut-c b{font-size:19px;color:var(--brand-2);letter-spacing:-.5px}.donut-c span{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.donut-flex{display:flex;gap:14px;align-items:center}
+.donut-flex .cw{position:relative;flex:0 0 168px;height:168px}
+.dleg{flex:1;display:flex;flex-direction:column;gap:9px}
+.dleg .row{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
+.dleg .row i{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
+.dleg .row b{margin-left:auto;color:var(--brand-2);font-size:12px;font-variant-numeric:tabular-nums}
+.att{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:12px;align-items:flex-start}
+.att:last-child{border-bottom:0}
+.att .b{width:7px;height:7px;border-radius:50%;margin-top:5px;flex:0 0 auto}
+.att .nm{font-weight:700;color:var(--brand-2)}
+.att .tm{color:var(--muted);font-size:11px;margin-left:auto;white-space:nowrap}
+.bdg{display:inline-block;padding:4px 9px;border-radius:6px;font-size:10.5px;font-weight:700;letter-spacing:0;white-space:nowrap;text-transform:none}
+.bdg.ok{background:#d4edda;color:#155724}.bdg.warn{background:#fff3cd;color:#856404}.bdg.bad{background:#f8d7da;color:#721c24}.bdg.mut{background:var(--surface2);color:var(--muted);border:1px solid var(--line)}
+.foot-note{margin-top:22px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:10.5px;text-align:center}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-top:12px}
+.panel h2{font-size:13.5px;margin:0 0 10px;font-weight:700;color:var(--brand-2)}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.ph h2{margin:0}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.6px;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface2)}
+td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:12px}
+tr:last-child td{border-bottom:0}tbody tr:hover{background:var(--surface2)}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.t-ok{background:var(--ok-soft);color:var(--ok)}.t-warn{background:var(--warn-soft);color:var(--warn)}
+.t-bad{background:var(--bad-soft);color:var(--bad)}.t-mut{background:var(--surface2);color:var(--muted)}
+.t-acc{background:var(--acc-soft);color:var(--brand-2)}
+.chart{position:relative;height:240px}.chart.tall{height:300px}
+.two{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.two > .panel{margin-top:0}
+.legend-inline{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--muted);margin-top:6px}
+.legend-inline i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.tl{position:relative;height:46px;background:var(--surface2);border-radius:8px;margin:12px 0 4px;overflow:hidden}
+.tl .seg{position:absolute;top:8px;height:30px;border-radius:4px;cursor:pointer;opacity:.95}
+.tl .seg.sess{background:var(--brand-2)}.tl .seg.a{background:var(--brand-3)}
+.tl .seg.b{background:var(--brand)}.tl .seg.c{background:var(--muted)}
+.tl-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.facts{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.fact{background:var(--surface2);border-radius:9px;padding:8px 10px}
+.fact .k{font-size:10px}.fact .v{font-size:14px;font-weight:700;margin-top:2px}
+.hm{border-collapse:separate;border-spacing:2px;font-size:10.5px;width:100%}
+.hm th{background:none;border:0;padding:2px;font-size:10px;text-align:center}
+.hm td{border:0;padding:0}
+.hm .cell{height:22px;border-radius:3px;background:var(--surface2)}
+.al{border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:10px;padding:11px 12px;margin-bottom:8px;background:var(--surface)}
+.al .ah{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:5px}
+.al .nm{font-weight:700;font-size:12.5px}
+.al p{margin:0;font-size:12px;color:var(--muted)}
+.al p.ev{margin-top:5px;color:var(--fg)}
+.al .ac{margin-top:6px;font-size:11.5px;border-left:2px solid var(--brand-3);padding-left:8px;color:var(--muted)}
+.rk .row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:12px}
+.rk .row:last-child{border:0}.rk .pos{color:var(--muted);width:15px;display:inline-block}
+.note{background:var(--surface2);border-radius:9px;padding:9px 11px;font-size:11.5px;color:var(--muted);margin-top:10px;border-left:3px solid var(--brand-3)}
+.note b{color:var(--fg)}
+.missing{border:1px dashed var(--line);border-radius:10px;padding:22px;text-align:center;color:var(--muted);font-size:12.5px}
+footer{margin-top:20px;font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+@media(max-width:640px){.v{font-size:18px}.wrap{padding:14px 10px 60px}th,td{padding:6px 5px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div>
+    <div class="crumb">CSC / Inteligência Operacional</div>
+    <h1>Gestão de Logs &amp; Pausas</h1>
+    <p class="sub" style="margin:6px 0 0;color:var(--muted);font-size:13px">Visibilidade sobre a jornada, uso do tempo e conformidade operacional.</p>
+  </div>
+  <div class="badge-live" id="bLive">Dados reais</div>
+</header>
+
+<div class="filters">
+  <div class="pills" id="perPills">
+    <button data-per="dia">Dia</button>
+    <button data-per="sem" class="on">Semana</button>
+    <button data-per="qui">Quinzena</button>
+    <button data-per="mes">Mês</button>
+    <button data-per="tri">Trimestre</button>
+    <button data-per="ano">Ano</button>
+  </div>
+  <div class="fsep"></div>
+  <select id="fTur"><option value="">Todos os turnos</option></select>
+  <select id="fCol"><option value="">Todos os colaboradores</option></select>
+  <select id="fNiv"><option value="col">Consolidado por colaborador</option><option value="tur">Consolidado por turno</option><option value="equ">Consolidado por equipe</option></select>
+  <input type="date" id="fData" value="2026-10-29" title="Data de referência">
+  <input type="month" id="fMes" value="2026-10" style="display:none">
+  <select id="fPer" style="display:none"><option value="dia">dia</option><option value="sem" selected>sem</option><option value="qui">qui</option><option value="mes">mes</option><option value="tri">tri</option><option value="ano">ano</option></select>
+</div>
+<div id="banner"></div>
+
+<nav class="tabs">
+  <button data-t="visao" class="on">Visão Geral</button>
+  <button data-t="ponto">Pontualidade</button>
+  <button data-t="logs">Logs</button>
+  <button data-t="prod">Pausas Produtivas</button>
+  <button data-t="impr">Pausas Improdutivas</button>
+  <button data-t="encer">Encerramento</button>
+  <button data-t="colab">Colaboradores</button>
+  <button data-t="rank">Rankings e Evolução</button>
+  <button data-t="atencao">Atenção da Gestão</button>
+</nav>
+
+<section id="visao" class="on"></section>
+<section id="ponto"></section>
+<section id="logs"></section>
+<section id="prod"></section>
+<section id="impr"></section>
+<section id="encer"></section>
+<section id="colab"></section>
+<section id="rank"></section>
+<section id="atencao"></section>
+
+<footer>
+Fonte: Matrix (Relatório de Login e Relatório de Pausas) sincronizado no Supabase. Fuso: America/Sao_Paulo. Turnos que atravessam a meia-noite são contabilizados no dia do login.<br>
+Cumprimento da jornada = (tempo conectado − pausas improdutivas − encerramento) ÷ carga prevista do turno. Pausas produtivas contam como jornada. Sessões sem logout não são tratadas como permanência efetiva.<br>
+Base atualizada automaticamente todos os dias às 01:00 (America/Sao_Paulo), fechando o dia anterior. Esta página sempre lê os dados mais recentes do Supabase ao abrir.
+</footer>
+</div>
+<script>
+let RAW={J:[],P:[],A:[],T:[],S:[],E:[]};
+const SB='https://eedigjsmsecoublejdkq.supabase.co/rest/v1';
+const AK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZGlnanNtc2Vjb3VibGVqZGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyNTM4NDksImV4cCI6MjEwMjgyOTg0OX0.DGG0B2Sul1qsDwgvfjZ0_c5UrroBN8m753a0pukuD0A';
+let OBS=[];let NU=[];
+const E=x=>x===null||x===undefined?null:new Date(x*1000).toISOString();
+let J=[],P=[],AL=[],TP=[],SE=[],ESC=[];
+function buildData(R){
+  const E2=x=>(x===null||x===undefined)?null:new Date(x*1000).toISOString();
+  J=R.J.map(x=>({agente:x[0],turno:x[1],hEnt:x[2],hSai:x[3],carga:x[4],prevEnt:E2(x[5]),prevSai:E2(x[6]),login:E2(x[7]),logout:E2(x[8]),
+    conectado:x[9],sessoes:x[10],produtiva:x[11],improdutiva:x[12],encerramento:x[13],atendimento:x[14],excedente:x[15],
+    acimaLimite:x[16],qtdProd:x[17],qtdImpr:x[18],cumpr:x[19],atraso:x[20],saidaDif:x[21],desconexoes:x[22],alertaLog:x[23],janela:x[24],data:x[25],cod:x[26]}));
+  P=R.P.map(x=>({agente:x[0],tipo:x[1],grupo:x[2],ini:E2(x[3]),fim:E2(x[4]),dur:x[5],limite:x[6],excedente:x[7],data:x[8]}));
+  AL=R.A.map(x=>({agente:x[0],tipo:x[1],indicador:x[2],ocorr:x[3],grav:x[4],evid:x[5],sugest:x[6],status:x[7]}));
+  TP=R.T.map(x=>({tipo:x[0],grupo:x[1],limite:x[2],ref:x[3]}));
+  SE=R.S.map(x=>({agente:x[0],login:E2(x[1]),logout:E2(x[2]),dur:x[3]}));
+  ESC=R.E.map(x=>({agente:x[0],turno:x[1],hEnt:x[2],hSai:x[3],carga:x[4],dias:x[5],cod:x[6]}));
+  DATAS=[...new Set(J.map(r=>r.data))].sort();
+  turnos=[...new Set(J.map(r=>r.turno))].sort();
+  nomes=[...new Set(J.map(r=>r.agente))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+const AK2=AK;
+const epJS=t=>t?Math.round(new Date(t).getTime()/1000):null;
+async function carregar(){
+  const h={apikey:AK2,Authorization:'Bearer '+AK2};
+  const q=async(v,ordem)=>{const out=[];let off=0;
+    for(;;){const r=await fetch(`${SB}/${v}?select=*${ordem?'&order='+ordem:''}&limit=1000&offset=${off}`,{headers:h});
+      if(!r.ok)throw new Error(v+' '+r.status);
+      const pg=await r.json();out.push(...pg);if(pg.length<1000)break;off+=1000;if(off>60000)break}
+    return out};
+  const [jv,pv,av,tv,sv,ev]=await Promise.all([q('vw_csc_log_dia','data.asc'),q('vw_csc_pausa_painel','inicio_em.asc'),
+    q('vw_csc_alerta_painel'),q('vw_csc_tipo_painel'),q('vw_csc_sessao_painel','login_em.asc'),q('vw_csc_escala_painel','agente.asc')]);
+  RAW={
+    J:jv.map(r=>[r.agente,r.turno,(r.hora_entrada||'').slice(0,5),(r.hora_saida||'').slice(0,5),r.carga_diaria_min,
+      epJS(r.previsto_entrada),epJS(r.previsto_saida),epJS(r.primeiro_login),epJS(r.ultimo_logout),
+      r.conectado_seg,r.sessoes,r.produtiva_seg,r.improdutiva_seg,r.encerramento_seg,r.atendimento_seg,r.excedente_seg,
+      r.pausas_acima_limite,r.qtd_produtivas,r.qtd_improdutivas,(r.cumprimento_pct===null?null:Number(r.cumprimento_pct)),
+      r.atraso_entrada_seg,r.saida_diferenca_seg,r.desconexoes,r.alerta_log||'normal',r.janela_encerramento_min||15,r.data,r.cod_matrix]),
+    P:pv.map(r=>[r.agente,r.tipo_pausa,r.grupo||'B',epJS(r.inicio_em),epJS(r.fim_em),r.tempo_seg,r.limite_seg,r.excedente_seg,r.data]),
+    A:av.map(r=>[r.agente,r.tipo_alerta,r.indicador,r.ocorrencias,r.gravidade,r.evidencia,r.sugestao_acao,r.status]),
+    T:tv.map(r=>[r.tipo_pausa,r.grupo||'B',r.limite_seg,r.referencia]),
+    S:sv.map(r=>[r.agente,epJS(r.login_em),epJS(r.logout_em),r.tempo_logado_seg]),
+    E:ev.map(r=>[r.agente,r.turno,(r.hora_entrada||'').slice(0,5),(r.hora_saida||'').slice(0,5),r.carga_diaria_min,r.dias_semana||'seg-sex',r.cod_matrix])
+  };
+  buildData(RAW);
+}
+const dBR=s=>s?String(s).slice(8,10)+'/'+String(s).slice(5,7):'—';
+const dBRL=s=>s?String(s).slice(8,10)+'/'+String(s).slice(5,7)+'/'+String(s).slice(2,4):'—';
+const fISO=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'});
+const diaIso=t=>t?fISO.format(new Date(t)):'';
+
+const TZ='America/Sao_Paulo';
+const fT=new Intl.DateTimeFormat('pt-BR',{timeZone:TZ,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+const fD=new Intl.DateTimeFormat('pt-BR',{timeZone:TZ,day:'2-digit',month:'2-digit'});
+const fHr=new Intl.DateTimeFormat('pt-BR',{timeZone:TZ,hour:'2-digit',hour12:false});
+const hhmm=t=>t?fT.format(new Date(t)).slice(0,5):'—';
+const hhmmss=t=>t?fT.format(new Date(t)):'—';
+const dia=t=>t?fD.format(new Date(t)):'';
+const hora=t=>t?+fHr.format(new Date(t)).replace(/\D/g,''):null;
+const H=s=>{if(s===null||s===undefined)return '—';s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(x).padStart(2,'0')};
+const HM=s=>{if(s===null||s===undefined)return '—';const neg=s<0;s=Math.abs(Math.round(s));const h=Math.floor(s/3600),m=Math.round(s%3600/60);return (neg?'-':'')+(h?h+'h'+String(m).padStart(2,'0'):m+'min')};
+const PC=v=>(v===null||v===undefined)?'—':Number(v).toFixed(1).replace('.',',')+'%';
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- filtros ---------- */
+let DATAS=[];
+const state={per:'sem',niv:'col',tur:'',col:'',data:DATAS[DATAS.length-1]||'2026-10-29',mes:(DATAS[DATAS.length-1]||'2026-10').slice(0,7)};
+const anchor=()=>new Date(state.data+'T12:00:00');
+function inPer(d){
+  if(!d) return false;
+  if(state.per==='dia') return d===state.data;
+  if(state.per==='mes') return d.slice(0,7)===state.data.slice(0,7);
+  if(state.per==='ano') return d.slice(0,4)===state.data.slice(0,4);
+  const dias={sem:7,qui:15}[state.per];
+  if(dias){const x=new Date(d+'T12:00:00');const a=anchor();const ini=new Date(a.getTime()-(dias-1)*864e5);return x>=ini&&x<=a}
+  if(state.per==='tri'){const x=new Date(d+'T12:00:00');const a=anchor();const ini=new Date(a);ini.setMonth(ini.getMonth()-2);ini.setDate(1);return x>=ini&&x<=a}
+  return d===state.data;
+}
+let turnos=[];
+let nomes=[];
+document.getElementById('fTur').innerHTML='<option value="">Todos</option>'+turnos.map(t=>`<option>${esc(t)}</option>`).join('');
+document.getElementById('fCol').innerHTML='<option value="">Todos</option>'+nomes.map(t=>`<option>${esc(t)}</option>`).join('');
+const fJ=()=>J.filter(r=>inPer(r.data)&&(!state.tur||r.turno===state.tur)&&(!state.col||r.agente===state.col));
+const fP=()=>P.filter(p=>inPer(p.data)&&(!state.tur||(J.find(r=>r.agente===p.agente)||{}).turno===state.tur)&&(!state.col||p.agente===state.col));
+
+function banner(){
+  const el=document.getElementById('banner');
+  if(state.per!=='dia'){
+    const nome={sem:'semanal',qui:'quinzenal',mes:'mensal',tri:'trimestral',ano:'anual'}[state.per];
+    el.innerHTML=`<div class="banner"><b>Visão ${nome}.</b> A base cobre 22 a 30/10/2026 (6 dias úteis fechados). O recorte ${nome} soma apenas os dias carregados, e o comparativo com o período anterior equivalente fica indisponível até a semana de 15 a 21/10 ser sincronizada.</div>`;
+  } else if(state.niv==='equ'){
+    el.innerHTML='<div class="banner"><b>Equipe = CSC.</b> Todos os 17 colaboradores pertencem ao mesmo setor, então a visão por equipe coincide com o consolidado. A separação por turno está disponível no filtro de nível.</div>';
+  } else el.innerHTML='';
+}
+
+/* ---------- helpers de UI ---------- */
+function card(k,v,n,tone,tab){return `<div class="card${tab?'':' static'}"${tab?` onclick="go('${tab}')"`:''}><div class="k">${k}</div><div class="v ${tone||''}">${v}</div><div class="n">${n||''}</div></div>`}
+function panel(t,body,extra){return `<div class="panel"><div class="ph"><h2>${t}</h2>${extra||''}</div>${body}</div>`}
+function tagTone(g){return g==='A'?'t-acc':g==='B'?'t-warn':'t-mut'}
+const charts=[];
+function draw(id,cfg){const el=document.getElementById(id);if(!el)return;const c=charts.find(x=>x.id===id);if(c)c.chart.destroy();
+ const chart=new Chart(el,cfg);charts.push({id,chart});}
+
+const C=()=>({brand:'#ff7043',blue:'#00439c',yellow:'#fbb900',muted:'#98a2b3',line:'rgba(120,130,145,.25)',txt:getComputedStyle(document.documentElement).getPropertyValue('--muted').trim()||'#667085'});
+const baseOpts=(extra={})=>{const c=C();return Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:c.txt,boxWidth:10,font:{size:11}}},tooltip:{callbacks:{}}},scales:{x:{ticks:{color:c.txt,font:{size:10}},grid:{color:c.line}},y:{ticks:{color:c.txt,font:{size:10}},grid:{color:c.line},beginAtZero:true}}},extra)};
+
+/* ---------- 1. VISÃO GERAL ---------- */
+function renderVisao(){
+  const novosHtml=renderNovos();
+  const js=fJ(), ps=fP();
+  const comLog=js.filter(r=>r.conectado!==null);
+  const totalCon=comLog.reduce((a,r)=>a+r.conectado,0);
+  const prod=comLog.reduce((a,r)=>a+r.produtiva,0), impr=comLog.reduce((a,r)=>a+r.improdutiva,0);
+  const enc=comLog.reduce((a,r)=>a+r.encerramento,0), aten=comLog.reduce((a,r)=>a+r.atendimento,0);
+  const equipeNomes=[...new Set(J.map(r=>r.agente))].length;
+  const logados=[...new Set(comLog.map(r=>r.agente))].length;
+  const cCum=comLog.filter(r=>r.cumpr!==null);
+  const conformes=cCum.filter(r=>r.cumpr>=95).length;
+  const pctJor=cCum.length?100*conformes/cCum.length:null;
+  const alertas=comLog.filter(r=>r.alertaLog!=='normal' && r.alertaLog!=='sem_log');
+  const graves=alertas.filter(r=>['atencao','elevado','critico','critico_max'].includes(r.alertaLog)).length;
+  const comSaida=comLog.filter(r=>r.logout!==null);
+  const encOk=comSaida.filter(r=>r.saidaDif!==null&&Math.abs(r.saidaDif)<=r.janela*60).length;
+  const {dias:pDias,linhas:pLinhas}=pontoCalc();
+  const pTot=pLinhas.length, pDen=pLinhas.filter(l=>l.st!=='atraso').length;
+  const pctPonto=pTot?100*pDen/pTot:null;
+  const pExtr=comLog.filter(r=>r.alertaLog==='critico'||r.alertaLog==='critico_max').length;
+
+  let h='';
+  
+  const bn=banner();
+  if(typeof bn==='string') h+=bn;
+
+  h+='<div class="kpi-grid">';
+  h+=kpi('Logados no período',logados+' / '+equipeNomes,PC(100*logados/equipeNomes)+' da equipe','ok','logs','usr');
+  h+=kpi('Jornada conforme',PC(pctJor),conformes+' de '+cCum.length+' dias com 95% ou mais da carga',pctJor>=90?'ok':'warn','logs','chk');
+  h+=kpi('Pausas produtivas',HM(prod),'Treino, auxílio, monitoramento','','prod','cup');
+  h+=kpi('Pausas pessoais',HM(impr),'Inclui intervalos autorizados','','impr','clock');
+  h+=kpi('Alertas de log',String(alertas.length).padStart(2,'0'),graves+' exigem verificação',graves?'warn':'ok','atencao','warn');
+  h+=kpi('Encerramento correto',encOk+' / '+comSaida.length,(comSaida.length-encOk)+' fora da janela',(comSaida.length-encOk)?'warn':'ok','encer','flag');
+  h+='</div>';
+
+  h+='<div class="two" style="margin-top:12px"><div class="panel"><div class="ph"><h2>Linha do tempo da jornada</h2><span class="n">tempo consolidado por natureza · clique na barra para abrir o colaborador</span></div><div class="chart" id="cTimeline"></div></div>';
+  const pctT=v=>totalCon?PC(100*v/totalCon):'—';
+  h+='<div class="panel"><div class="ph"><h2>Distribuição do tempo</h2></div><div class="donut-flex"><div class="cw"><canvas id="cDo"></canvas><div class="donut-c"><b>100%</b><span>do tempo</span></div></div><div class="dleg">'
+    +'<div class="row"><i style="background:#0d6efd"></i>Atendimento<b>'+pctT(aten)+'</b></div>'
+    +'<div class="row"><i style="background:#198754"></i>Produtiva<b>'+pctT(prod)+'</b></div>'
+    +'<div class="row"><i style="background:#fd7e14"></i>Pessoal<b>'+pctT(impr)+'</b></div>'
+    +'<div class="row"><i style="background:#6f42c1"></i>Encerramento<b>'+pctT(enc)+'</b></div>'
+    +'<div class="row" style="border-top:1px solid var(--line);padding-top:8px;margin-top:2px"><span>Tempo total</span><b>'+HM(totalCon)+'</b></div>'
+    +'</div></div></div></div>';
+
+  h+='<div class="two" style="margin-top:12px"><div class="panel"><div class="ph"><h2>Evolução dos indicadores</h2><span class="n">dias úteis com base carregada</span></div><div class="chart" id="cEvol"></div><div class="legend-inline"><span><i style="background:#0d6efd"></i>Jornada conforme</span><span><i style="background:#fbb900"></i>Pontualidade</span></div></div>';
+  h+='<div class="panel"><div class="ph"><h2>Atenção da gestão</h2><span class="bdg warn" style="background:#fff3e0;color:#e67e22">'+alertas.length+' alertas</span></div>';
+  const lista=alertas.slice().sort((a,b)=>(b.atraso||0)-(a.atraso||0)).slice(0,4);
+  if(!lista.length) h+='<p class="n" style="padding:10px 0">Nenhum alerta de log no recorte.</p>';
+  lista.forEach(r=>{
+    const cor=(r.alertaLog==='critico'||r.alertaLog==='critico_max')?'#e74c3c':(r.alertaLog==='elevado'?'#f39c12':'#fbb900');
+    const txt=r.alertaLog==='sem_log'?'Sem registro de log':(r.atraso>300?'Log fora da janela prevista':'Jornada acima do previsto');
+    h+=`<div class="att" style="cursor:pointer" onclick="openColab('${esc(r.agente)}')"><div class="b" style="background:${cor}"></div><div><span class="nm">${esc(r.agente)}</span> · ${txt}${r.atraso>0?' ('+HM(r.atraso)+' de atraso)':''}<div class="n">${esc(r.turno)} · ${hhmm(r.login)} a ${hhmm(r.logout)}</div></div><div class="tm">${dia(r.login)}</div></div>`;
+  });
+  h+=`<p class="n" style="margin-top:10px;cursor:pointer" onclick="go('atencao')" style="color:var(--brand-2);font-weight:700">Alertas detalhados no módulo específico →</p></div></div>`;
+
+  const rows=comLog.slice().sort((a,b)=>(b.alerta==='critico_max'?1:0)-(a.alerta==='critico_max'?1:0));
+  h+=panel('Resumo por colaborador',
+    '<table><thead><tr><th>Colaborador</th><th>Log previsto</th><th>Log registrado</th><th>Produtivas</th><th>Pessoais</th><th>Jornada</th><th>Situação</th></tr></thead><tbody>'
+    +rows.map(r=>{
+      const bd=(()=>{if(r.alertaLog==='critico'||r.alertaLog==='critico_max')return '<span class="bdg bad">Log excedente</span>';
+        if(r.acimaLimite)return '<span class="bdg warn">Verificar pausa</span>';
+        if(r.cumpr!==null&&r.cumpr>=95)return '<span class="bdg ok">Conforme</span>';
+        if(r.cumpr!==null&&r.cumpr>=85)return '<span class="bdg warn">Acompanhar</span>';
+        return '<span class="bdg warn">Verificar jornada</span>'})();
+      return `<tr style="cursor:pointer" onclick="openColab('${esc(r.agente)}')"><td><b>${esc(r.agente)}</b></td><td class="num">${r.hEnt}–${r.hSai}</td><td class="num">${hhmm(r.login)}–${hhmm(r.logout)}</td><td class="num">${HM(r.produtiva)}</td><td class="num">${HM(r.improdutiva)}</td><td class="num">${PC(r.cumpr)}</td><td>${bd}</td></tr>`}).join('')
+    +'</tbody></table>','<span class="n">10 casos prioritários · clique para abrir a linha do tempo</span>');
+  h+='<div class="foot-note">Painel com dados reais extraídos da Matrix, recorte '+dia(new Date(state.data+'T12:00:00'))+'. Entrada considerada é o primeiro log do dia; pausas online sem interrupção contam como produtivas.</div>';
+  document.getElementById('visao').innerHTML=novosHtml+h;
+
+  // timeline por colaborador
+  const porAg={};comLog.forEach(r=>{const o=porAg[r.agente]=porAg[r.agente]||{a:0,p:0,i:0,e:0,t:r.turno};o.a+=r.atendimento;o.p+=r.produtiva;o.i+=r.improdutiva;o.e+=r.encerramento});
+  const tk=Object.keys(porAg).sort();
+  draw('cTimeline',{type:'bar',data:{labels:tk,datasets:[
+    {label:'Atendimento',data:tk.map(k=>+(porAg[k].a/3600).toFixed(2)),backgroundColor:'#0d6efd',borderWidth:0,stack:'s',borderRadius:2},
+    {label:'Produtiva',data:tk.map(k=>+(porAg[k].p/3600).toFixed(2)),backgroundColor:'#198754',borderWidth:0,stack:'s'},
+    {label:'Pessoal',data:tk.map(k=>+(porAg[k].i/3600).toFixed(2)),backgroundColor:'#fd7e14',borderWidth:0,stack:'s'},
+    {label:'Encerramento',data:tk.map(k=>+(porAg[k].e/3600).toFixed(2)),backgroundColor:'#6f42c1',borderWidth:0,stack:'s'}]},
+    options:baseOpts({indexAxis:'y',scales:{x:{stacked:true,ticks:{color:C().txt,font:{size:10},callback:v=>v+'h'},grid:{color:C().line}},y:{stacked:true,ticks:{color:C().txt,font:{size:10}},grid:{display:false}}}})});
+  draw('cDo',{type:'doughnut',data:{labels:['Atendimento','Produtiva','Pessoal','Encerramento'],datasets:[{data:[Math.round(aten/60),Math.round(prod/60),Math.round(impr/60),Math.round(enc/60)],backgroundColor:['#0d6efd','#198754','#fd7e14','#6f42c1'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}});
+  const dU=pDias;
+  const ev=dU.map(d=>{const l=comLog.filter(r=>r.data===d);const ok=l.filter(r=>r.cumpr!==null&&r.cumpr>=100).length;const cl=l.filter(r=>r.cumpr!==null).length;
+    const pl=pLinhas.filter(x=>x.d===d);const pd=pl.filter(x=>x.st!=='atraso').length;
+    return {d,jor:cl?+(100*ok/cl).toFixed(1):null,pon:pl.length?+(100*pd/pl.length).toFixed(1):null}});
+  draw('cEvol',{type:'line',data:{labels:ev.map(x=>dBR(x.d)),datasets:[
+    {label:'Jornada conforme',data:ev.map(x=>x.jor),borderColor:'#0d6efd',backgroundColor:'#0d6efd',borderWidth:2,pointRadius:3,tension:.3,spanGaps:true},
+    {label:'Pontualidade',data:ev.map(x=>x.pon),borderColor:'#fbb900',backgroundColor:'#fbb900',borderWidth:2,pointRadius:3,tension:.3,spanGaps:true}]},
+    options:baseOpts({scales:{x:{ticks:{color:C().txt,font:{size:10}},grid:{display:false}},x:{}}})});
+}
+function kpi(t,v,f,tone,tab,ic){
+  const ICO={usr:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0 8 4 4 0 0 0 0-8M22 21v-2a4 4 0 0 0-3-3.87',
+   chk:'M22 11.1V12a10 10 0 1 1-5.9-9.1M9 11l3 3L22 4',
+   cup:'M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8M6 1v3M10 1v3M14 1v3',
+   clock:'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20M12 6v6l4 2',
+   warn:'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0M12 9v4M12 17h.01',
+   flag:'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7'};
+  return `<div class="kpi" onclick="go('${tab}')"><div class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${ICO[ic]||ICO.chk}"/></svg></div><div class="kt">${t}</div><div class="kv">${v}</div><div class="kf ${tone||''}">${f||''}</div></div>`;
+}
+const TOL=5*60;
+function diasUteis(inicio,fim){
+  const out=[];let d=new Date(inicio+'T12:00:00');const f=new Date(fim+'T12:00:00');
+  while(d<=f){const w=d.getDay();if(w!==0&&w!==6)out.push(fISO.format(d));d=new Date(d.getTime()+864e5)}
+  return out;
+}
+function pontoCalc(){
+  const dias=diasUteis('2026-10-22','2026-10-29');
+  const first={};
+  SE.forEach(s=>{const d=diaIso(s.login);const k=s.agente+'|'+d;const t=new Date(s.login).getTime();
+    if(!first[k]||t<first[k])first[k]=t});
+  const linhas=[];
+  ESC.forEach(e=>{
+    dias.forEach(d=>{
+      const t=first[e.agente+'|'+d];
+      if(!t) return;
+      const prev=new Date(d+'T'+e.hEnt+':00-03:00').getTime();
+      const diff=Math.round((t-prev)/1000);
+      linhas.push({agente:e.agente,turno:e.turno,d,prev:e.hEnt,login:new Date(t).toISOString(),diff,
+        st:diff<0?'adiantado':(diff<=TOL?'no_prazo':'atraso')});
+    });
+  });
+  return {dias,linhas};
+}
+function renderPonto(){
+  const {dias,linhas}=pontoCalc();
+  const tot=linhas.length, dentro=linhas.filter(l=>l.st!=='atraso').length;
+  const pct=tot?100*dentro/tot:null;
+  const atrasos=linhas.filter(l=>l.st==='atraso');
+  const med=atrasos.length?atrasos.reduce((a,l)=>a+l.diff,0)/atrasos.length:0;
+  const pior=atrasos.length?Math.max(...atrasos.map(l=>l.diff)):0;
+  const precisa=Math.round(0.98*tot);
+  let h='<div class="grid">';
+  h+=card('Meta de pontualidade','98%','por dia e no consolidado','' );
+  h+=card('Semana 22–29/10',PC(pct),dentro+' de '+tot+' logins no prazo',pct>=98?'ok':pct>=90?'warn':'bad');
+  h+=card('Logins no prazo',dentro,'adiantados '+linhas.filter(l=>l.st==='adiantado').length,'ok');
+  h+=card('Logins fora do prazo',tot-dentro,'atraso acima de 5 min','bad');
+  h+=card('Para bater 98%',precisa+' de '+tot,'faltam '+(precisa-dentro),'warn');
+  h+=card('Atraso médio',HM(med),'nos casos fora do prazo','');
+  h+=card('Maior atraso',HM(pior),'no período','bad');
+  h+=card('Dias úteis analisados',dias.length,'22 a 29/10/2026','');
+  h+='</div>';
+  h+=`<div class="two">
+   <div class="panel"><div class="ph"><h2>Logins dentro e fora do prazo, por dia</h2></div><div class="chart" id="cPontoDia"></div>
+   <div class="legend-inline"><span><i style="background:#0f7b4f"></i>Dentro do prazo</span><span><i style="background:#b3261e"></i>Fora do prazo</span><span><i style="background:#00439c"></i>% no prazo</span></div></div>
+   <div class="panel"><div class="ph"><h2>% no prazo por colaborador</h2></div><div class="chart" id="cPontoAg"></div></div>
+   </div>`;
+  h+=panel('% no prazo por turno',`<div class="chart" id="cPontoTurno"></div>`);
+  const per={};
+  linhas.forEach(l=>{const o=per[l.agente]=per[l.agente]||{t:0,d:0,a:0,ad:0,diffs:[],turno:l.turno,dias:[]};
+    o.t++;o.dias.push(l.d);
+    if(l.st==='atraso'){o.a++;o.diffs.push(l.diff)}else{o.d++;if(l.st==='adiantado')o.ad++}});
+  const ops=Object.entries(per).sort((a,b)=>(a[1].a/a[1].t)-(b[1].a/b[1].t)*-1);
+  h+=panel('Detalhe por colaborador',`<table><thead><tr><th>Colaborador</th><th>Turno</th><th>Prev.</th><th>Presenças</th><th>No prazo</th><th>Fora</th><th>% no prazo</th><th>Atraso médio</th><th>Pior atraso</th><th>Situação</th></tr></thead><tbody>`
+   +ops.sort((a,b)=>(b[1].a/b[1].t)-(a[1].a/a[1].t)).map(([k,o])=>{
+     const p=100*o.d/o.t; const med=o.a?o.diffs.reduce((x,y)=>x+y,0)/o.a:0; const pior=o.a?Math.max(...o.diffs):0;
+     const tag=p>=98?'<span class="tag t-ok">na meta</span>':p>=75?'<span class="tag t-warn">atenção</span>':'<span class="tag t-bad">crítico</span>';
+     return `<tr><td>${esc(k)}</td><td class="num">${esc(o.turno)}</td><td class="num">${(ESC.find(e=>e.agente===k)||{}).hEnt||''}</td><td class="num">${o.t}</td><td class="num">${o.d}</td><td class="num">${o.a}</td><td class="num">${PC(p)}</td><td class="num">${o.a?HM(med):'—'}</td><td class="num">${o.a?HM(pior):'—'}</td><td>${tag}</td></tr>`}).join('')
+   +`</tbody></table>`,'<span class="n">somente dias com registro de log</span>');
+  h+=panel('Feedbacks da semana',feedbacks(per),'<span class="n">texto pronto para usar na conversa individual</span>');
+  document.getElementById('ponto').innerHTML=h;
+
+  const porDia=dias.map(d=>{const l=linhas.filter(x=>x.d===d);const dn=l.filter(x=>x.st!=='atraso').length;return {d,dn,fora:l.length-dn,tot:l.length,pct:l.length?100*dn/l.length:null}});
+  draw('cPontoDia',{type:'bar',data:{labels:porDia.map(x=>x.d.slice(8,10)+'/'+x.d.slice(5,7)),datasets:[
+    {label:'Dentro',data:porDia.map(x=>x.dn),backgroundColor:'#0f7b4f',borderWidth:0,stack:'s',yAxisID:'y'},
+    {label:'Fora',data:porDia.map(x=>x.fora),backgroundColor:'#b3261e',borderWidth:0,stack:'s',yAxisID:'y'},
+    {label:'% no prazo',data:porDia.map(x=>x.pct?+x.pct.toFixed(1):null),type:'line',borderColor:'#00439c',backgroundColor:'#00439c',borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y1'},
+    {label:'Meta 98%',data:porDia.map(()=>98),type:'line',borderColor:'#fbb900',borderWidth:2,borderDash:[6,4],pointRadius:0,yAxisID:'y1'}]},
+    options:baseOpts({scales:{x:{stacked:true,ticks:{color:C().txt,font:{size:10}},grid:{color:C().line}},
+      y:{stacked:true,beginAtZero:true,ticks:{color:C().txt,font:{size:10}},grid:{color:C().line},title:{display:true,text:'logins',color:C().txt,font:{size:10}}},
+      y1:{position:'right',min:0,max:100,ticks:{color:C().txt,font:{size:10},callback:v=>v+'%'},grid:{display:false}}}})});
+  const ags=Object.entries(per).map(([k,o])=>({k,p:100*o.d/o.t})).sort((a,b)=>a.p-b.p);
+  draw('cPontoAg',{type:'bar',data:{labels:ags.map(x=>x.k),datasets:[
+    {label:'% no prazo',data:ags.map(x=>+x.p.toFixed(1)),backgroundColor:'#00439c',borderWidth:0},
+    {label:'Meta 98%',data:ags.map(()=>98),type:'line',borderColor:'#fbb900',borderWidth:2,borderDash:[6,4],pointRadius:0}]},
+    options:baseOpts({indexAxis:'y',scales:{x:{min:0,max:100,ticks:{color:C().txt,font:{size:10}},grid:{color:C().line}},y:{ticks:{color:C().txt,font:{size:10}},grid:{display:false}}}})});
+  const ts={};
+  linhas.forEach(l=>{const o=ts[l.turno]=ts[l.turno]||{t:0,d:0};o.t++;if(l.st!=='atraso')o.d++});
+  const tk=Object.keys(ts).sort();
+  draw('cPontoTurno',{type:'bar',data:{labels:tk,datasets:[
+    {label:'% no prazo',data:tk.map(k=>+(100*ts[k].d/ts[k].t).toFixed(1)),backgroundColor:'#ff7043',borderWidth:0},
+    {label:'Meta 98%',data:tk.map(()=>98),type:'line',borderColor:'#fbb900',borderWidth:2,borderDash:[6,4],pointRadius:0}]},
+    options:baseOpts({scales:{x:{ticks:{color:C().txt,font:{size:10}},grid:{color:C().line}},y:{min:0,max:100,ticks:{color:C().txt,font:{size:10}},grid:{color:C().line}}}})});
+}
+function feedbacks(per){
+  const linhas=[];
+  Object.entries(per).forEach(([k,o])=>{
+    const p=100*o.d/o.t, med=o.a?o.diffs.reduce((x,y)=>x+y,0)/o.a:0, pior=o.a?Math.max(...o.diffs):0;
+    let st,texto;
+    if(o.a===0){st='<span class="tag t-ok">reforço positivo</span>';
+      texto=`${k}: ${o.t} de ${o.t} logins no prazo${o.ad?` (${o.ad} adiantado${o.ad>1?'s':''})`:''}. Reconhecer publicamente e usar como referência de pontualidade do turno ${o.turno}.`;}
+    else if(p>=75){st='<span class="tag t-warn">ajuste pontual</span>';
+      texto=`${k}: ${o.a} atraso${o.a>1?'s':''} em ${o.t} dias (${PC(p)} no prazo), média ${HM(med)}. Lembrete individual e confirmar se houve registro de observação justificando.`;}
+    else {st='<span class="tag t-bad">conversa individual</span>';
+      texto=`${k}: ${o.a} atrasos em ${o.t} dias (${PC(p)} no prazo), média ${HM(med)} e pior caso ${HM(pior)}. Conversa formal: causa do atraso, combinado de horário e acompanhamento diário por 5 dias úteis.`;}
+    if(pior>=3600) texto+=` O pior caso (${HM(pior)}) precisa de justificativa formal, porque nesse patamar não é atraso de rotina.`;
+    linhas.push({k,p,st,texto});
+  });
+  linhas.sort((a,b)=>a.p-b.p);
+  return linhas.map(l=>`<div class="al"><div class="ah"><span class="nm">${esc(l.k)}</span>${l.st}<span class="tag t-mut">${PC(l.p)}</span></div><p class="ev">${esc(l.texto)}</p></div>`).join('');
+}
+
+/* ---------- 2. LOGS ---------- */
+function renderLogs(){
+  const js=fJ().filter(r=>r.conectado!==null);
+  const semLog=fJ().filter(r=>r.conectado===null);
+  const atrasos=js.filter(r=>r.atraso>300), antes=js.filter(r=>r.saidaDif<-300);
+  const descon=js.reduce((a,r)=>a+r.desconexoes,0);
+  const acima=(lim)=>js.filter(r=>r.conectado>lim*3600).length;
+  let h='<div class="grid">';
+  h+=card('Logs acima de 8h',acima(8),'alerta de atenção',acima(8)?'warn':'ok');
+  h+=card('Logs acima de 13h',acima(13),'alerta elevado',acima(13)?'bad':'ok');
+  h+=card('Logs acima de 16h',acima(16),'alerta crítico',acima(16)?'bad':'ok');
+  h+=card('Logs acima de 18h',acima(18),'crítico máximo',acima(18)?'bad':'ok');
+  h+=card('Atrasos acima de 5 min',atrasos.length,'total '+HM(atrasos.reduce((a,r)=>a+r.atraso,0)),atrasos.length?'warn':'ok');
+  h+=card('Encerramento antecipado',antes.length,'mais de 5 min antes',antes.length?'warn':'ok');
+  h+=card('Desconexões',descon,'relogins no expediente',descon?'warn':'ok');
+  h+=card('Sem registro de log',semLog.length,semLog.map(r=>r.agente).join(', ')||'—','bad');
+  h+='</div>';
+
+  const ord=js.slice().sort((a,b)=>b.conectado-a.conectado);
+  h+=`<div class="panel"><div class="ph"><h2>Horas previstas vs registradas</h2></div><div class="chart tall" id="cLog"></div></div>`;
+
+  h+=panel('Detalhe de logs por colaborador',`<div style="overflow-x:auto"><table><thead><tr>
+  <th>Colaborador</th><th>Turno</th><th>Prev. ent.</th><th>Prev. saí.</th><th>Entrada (1º log)</th><th>Último logout</th><th>Logado</th>
+  <th>Dentro da jornada</th><th>Fora da jornada</th><th>Logins</th><th>Desconex.</th><th>Prev. × reg.</th><th>Atraso</th><th>Saída</th></tr></thead><tbody>`
+  +ord.map(r=>{
+    const dentro=Math.min(r.conectado,r.carga*60), fora=Math.max(0,r.conectado-r.carga*60);
+    return `<tr><td>${esc(r.agente)}</td><td class="num">${esc(r.turno)}</td><td class="num">${r.hEnt}</td><td class="num">${r.hSai}</td>
+    <td class="num">${hhmmss(r.login)}</td><td class="num">${hhmmss(r.logout)} <span class="n">${dia(r.logout)}</span></td>
+    <td class="num">${H(r.conectado)}</td><td class="num">${H(dentro)}</td><td class="num">${fora>0?'<span class="tag t-warn">'+HM(fora)+'</span>':HM(0)}</td>
+    <td class="num">${r.sessoes}</td><td class="num">${r.desconexoes}</td><td class="num">${H(r.carga*60)} × ${H(r.conectado)}</td>
+    <td class="num">${r.atraso>300?'<span class="tag t-warn">'+HM(r.atraso)+'</span>':HM(Math.max(0,r.atraso))}</td>
+    <td class="num">${r.saidaDif<-300?'<span class="tag t-bad">'+HM(r.saidaDif)+'</span>':HM(r.saidaDif)}</td></tr>`}).join('')
+  +`</tbody></table></div>`,
+  '<span class="n">entrada = primeiro log do dia</span>');
+
+  h+=`<div class="note"><b>Regra de entrada:</b> quando existe mais de um registro de log no dia, a entrada considerada é o primeiro login; cada relogin posterior conta como desconexão e não reinicia a jornada.</div>`;
+  h+=obsPanel(fJ());
+  h+=`<div class="note"><b>Antes de tratar permanência como efetiva:</b> sessão sem logout registrado, diferença entre o tempo logado e a jornada prevista e relogins em sequência (segundos) podem indicar falha de integração ou instabilidade da estação, não tempo trabalhado. Todos os registros desta base têm logout; não há log aberto indevidamente identificado em 29/10.</div>`;
+  document.getElementById('logs').innerHTML=h;
+
+  draw('cLog',{type:'bar',data:{labels:ord.map(r=>r.agente),datasets:[
+    {label:'Previsto (h)',data:ord.map(r=>+(r.carga/60).toFixed(2)),backgroundColor:'#98a2b3',borderWidth:0},
+    {label:'Registrado (h)',data:ord.map(r=>+(r.conectado/3600).toFixed(2)),backgroundColor:'#00439c',borderWidth:0}]},
+    options:baseOpts({indexAxis:'y',scales:{x:{ticks:{color:C().txt,font:{size:10}},grid:{color:C().line},beginAtZero:true},y:{ticks:{color:C().txt,font:{size:10}},grid:{display:false}}}})});
+}
+
+/* ---------- OBSERVAÇÕES ---------- */
+function obsOf(agente){const o=OBS.find(x=>x.agente===agente);return o||{motivo:'outro',texto:''}}
+const MOTIVOS=[['atraso','Atraso na entrada'],['saida_antecipada','Saída antecipada'],['falta','Falta / ausência de log'],['ajuste_ponto','Ajuste de ponto'],['autorizado','Ausência autorizada'],['outro','Outro']];
+function obsPanel(js){
+  const alvo=js.filter(r=>r.atraso>300||r.saidaDif<-300||r.conectado===null);
+  let h='<div class="panel"><div class="ph"><h2>Observações de atraso e saída</h2><span class="n">gravadas no Supabase (csc_jornada_observacao)</span></div>';
+  if(!alvo.length) return h+'<div class="missing">Nenhum colaborador com atraso, saída antecipada ou falta de log no recorte.</div></div>';
+  h+='<div style="overflow-x:auto"><table><thead><tr><th>Colaborador</th><th>Ocorrência</th><th>Motivo</th><th>Observação</th><th></th></tr></thead><tbody>';
+  alvo.forEach(r=>{
+    const o=obsOf(r.agente);const motivo=r.conectado===null?'falta':r.saidaDif<-300?'saida_antecipada':'atraso';
+    h+=`<tr class="obsrow" data-ag="${esc(r.agente)}" data-cod="${r.cod||''}">
+    <td>${esc(r.agente)}</td>
+    <td class="num">${r.conectado===null?'sem log':(r.saidaDif<-300?'saída '+HM(r.saidaDif):'atraso '+HM(r.atraso))}</td>
+    <td><select class="obs-m">${MOTIVOS.map(m=>`<option value="${m[0]}" ${o.motivo===m[0]?'selected':''}>${m[1]}</option>`).join('')}</select></td>
+    <td><textarea class="obs-t" rows="2" style="width:100%;min-width:220px;font-family:inherit;font-size:12px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)" placeholder="Ex.: atraso justificado por consulta médica, apresentou atestado">${esc(o.texto||'')}</textarea></td>
+    <td><button onclick="saveObs(this)" style="font-family:inherit;font-size:12px;font-weight:700;padding:7px 11px;border-radius:8px;border:1px solid var(--line);background:var(--brand-2);color:#fff;cursor:pointer">Salvar</button><div class="n obs-s"></div></td></tr>`;
+  });
+  return h+'</tbody></table></div></div>';
+}
+async function loadNU(){
+  try{const r=await fetch(`${SB}/csc_novo_usuario?select=*&order=ocorrencias.desc`,{headers:{apikey:AK,Authorization:'Bearer '+AK}});NU=await r.json();}
+  catch(e){NU=[]}
+}
+async function decideNU(agente,status,btn){
+  const st=btn.parentElement.querySelector('.obs-s')||btn;
+  st.textContent='gravando…';
+  try{
+    const r=await fetch(`${SB}/csc_novo_usuario?agente=eq.${encodeURIComponent(agente)}`,{method:'PATCH',
+      headers:{apikey:AK,Authorization:'Bearer '+AK,'Content-Type':'application/json',Prefer:'return=representation'},
+      body:JSON.stringify({status,decisao_em:new Date().toISOString(),decisao_por:'gestao'})});
+    if(!r.ok) throw new Error(await r.text());
+    const [rec]=await r.json();
+    NU=NU.map(x=>x.agente===agente?{...x,...rec}:x);
+    renderAll();
+  }catch(e){st.textContent='falha ao gravar';}
+}
+function renderNovos(){
+  const p=NU.filter(x=>x.status==='pendente');
+  if(!p.length) return '';
+  let h='<div class="panel" style="border:2px solid var(--brand-2)"><div class="ph"><h2>Alerta: usuário novo nas filas do CSC</h2><span class="n">'+p.length+' aguardando decisão</span></div>';
+  h+='<div class="note">Esses nomes apareceram no log ou nas pausas das filas do CSC e não estão na sua equipe cadastrada. Confirme para incluir no acompanhamento diário ou dispensar.</div>';
+  p.forEach(x=>{
+    h+=`<div class="al" style="margin-top:8px"><div class="ah"><span class="nm">${esc(x.agente)}</span>
+      <span class="tag t-mut">${x.ocorrencias||0} registros</span>
+      <span class="tag t-mut">último em ${dBR(x.ultima_ocorrencia)}</span></div>
+      <p class="ev">Detectado primeiro em ${dBR(x.primeira_ocorrencia)}. Se for da equipe, passa a entrar nos dados de log e pausa a partir da próxima sincronização.</p>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+        <button onclick="decideNU('${esc(x.agente)}','equipe',this)" style="font-family:inherit;font-size:12px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid #0f7b4f;background:#0f7b4f;color:#fff;cursor:pointer">É da minha equipe</button>
+        <button onclick="decideNU('${esc(x.agente)}','ignorado',this)" style="font-family:inherit;font-size:12px;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer">Não incluir</button>
+        <span class="n obs-s"></span>
+      </div></div>`;
+  });
+  return h+'</div>';
+}
+
+async function loadObs(){
+  try{const r=await fetch(`${SB}/csc_jornada_observacao?select=agente,motivo,texto,data&data=eq.${state.data}`,{headers:{apikey:AK,Authorization:'Bearer '+AK}});OBS=await r.json();}
+  catch(e){OBS=[]}
+}
+async function saveObs(btn){
+  const row=btn.closest('.obsrow');const agente=row.dataset.ag;const cod=row.dataset.cod;
+  const motivo=row.querySelector('.obs-m').value;const texto=row.querySelector('.obs-t').value.trim();
+  const st=row.querySelector('.obs-s');
+  if(!texto){st.innerHTML='<span class="tag t-warn">descreva a observação</span>';return}
+  st.textContent='salvando…';
+  try{
+    const r=await fetch(`${SB}/csc_jornada_observacao?on_conflict=data,agente`,{method:'POST',
+      headers:{apikey:AK,Authorization:'Bearer '+AK,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'},
+      body:JSON.stringify([{data:state.data,cod_matrix:cod?+cod:null,agente,motivo,texto,autor:'gestao',atualizado_em:new Date().toISOString()}])});
+    if(!r.ok) throw new Error(await r.text());
+    const [rec]=await r.json();
+    OBS=OBS.filter(x=>x.agente!==agente).concat([{agente,motivo,texto,data:state.data}]);
+    st.innerHTML='<span class="tag t-ok">salvo</span>';
+  }catch(e){st.innerHTML='<span class="tag t-bad">falha ao salvar</span>';}
+}
+
+/* ---------- 3. PAUSAS PRODUTIVAS ---------- */
+function renderProd(){
+  const ps=fP().filter(p=>p.grupo==='A');
+  const js=fJ().filter(r=>r.conectado!==null);
+  const total=ps.reduce((a,p)=>a+p.dur,0);
+  const con=js.reduce((a,r)=>a+r.conectado,0);
+  const canais=ps.filter(p=>p.tipo.startsWith('ATIVO')), adm=ps.filter(p=>!p.tipo.startsWith('ATIVO'));
+  const porCat={};ps.forEach(p=>porCat[p.tipo]=(porCat[p.tipo]||0)+p.dur);
+  const porAg={};ps.forEach(p=>porAg[p.agente]=(porAg[p.agente]||0)+p.dur);
+  let h='<div class="grid">';
+  h+=card('Tempo total produtivo',H(total),'contabilizado como jornada','brand');
+  h+=card('Quantidade de pausas',ps.length,canais.length+' de canal · '+adm.length+' administrativas','');
+  h+=card('% da jornada logada',PC(100*total/(con||1)),'do tempo conectado','' );
+  h+=card('Colaboradores',Object.keys(porAg).length,'com atividade fora do receptivo','');
+  h+=card('Inconsistência de canal',canais.length,'validação indisponível','warn');
+  h+='</div>';
+  h+='<div class="two">';
+  h+=`<div class="panel"><div class="ph"><h2>Tempo por categoria</h2></div><div class="chart" id="cProdCat"></div></div>`;
+  h+=`<div class="panel"><div class="ph"><h2>Quem mais atua fora do receptivo</h2></div><div class="chart" id="cProdAg"></div></div>`;
+  h+='</div>';
+  h+=panel('Registros produtivos',`<div style="overflow-x:auto"><table><thead><tr><th>Colaborador</th><th>Tipo</th><th>Início</th><th>Fim</th><th>Duração</th><th>Validação de canal</th></tr></thead><tbody>`
+   +ps.map(p=>`<tr><td>${esc(p.agente)}</td><td>${esc(p.tipo)}</td><td class="num">${hhmmss(p.ini)}</td><td class="num">${hhmmss(p.fim)}</td><td class="num">${H(p.dur)}</td>
+   <td>${p.tipo.startsWith('ATIVO')?'<span class="tag t-mut">validação indisponível</span>':'<span class="tag t-acc">não se aplica</span>'}</td></tr>`).join('')
+   +`</tbody></table></div>`);
+  h+=`<div class="note"><b>Validação de canal indisponível.</b> Não há integração ativa com o status dos canais (telefonia/WhatsApp) nesta base, portanto não é possível confirmar se o canal correto permaneceu ativo nem se houve atendimento simultâneo. Os ${canais.length} registros de ATIVO TELEFONIA/WHATSAPP aparecem como produtivos por definição, sem acusação de irregularidade.</div>`;
+  document.getElementById('prod').innerHTML=h;
+  draw('cProdCat',{type:'bar',data:{labels:Object.keys(porCat),datasets:[{data:Object.values(porCat).map(v=>+(v/3600).toFixed(2)),backgroundColor:'#00439c',borderWidth:0}]},options:baseOpts({indexAxis:'y',plugins:{legend:{display:false}}})});
+  const agTop=Object.entries(porAg).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  draw('cProdAg',{type:'bar',data:{labels:agTop.map(x=>x[0]),datasets:[{data:agTop.map(x=>+(x[1]/3600).toFixed(2)),backgroundColor:'#fbb900',borderWidth:0}]},options:baseOpts({indexAxis:'y',plugins:{legend:{display:false}}})});
+}
+
+/* ---------- 4. PAUSAS IMPRODUTIVAS ---------- */
+function renderImpr(){
+  const ps=fP().filter(p=>p.grupo==='B');
+  const js=fJ().filter(r=>r.conectado!==null);
+  const total=ps.reduce((a,p)=>a+p.dur,0), con=js.reduce((a,r)=>a+r.conectado,0);
+  const exc=ps.reduce((a,p)=>a+(p.excedente||0),0), acima=ps.filter(p=>(p.excedente||0)>0);
+  const porCat={};ps.forEach(p=>porCat[p.tipo]=(porCat[p.tipo]||0)+p.dur);
+  const porAg={};ps.forEach(p=>{porAg[p.agente]=porAg[p.agente]||{t:0,n:0,e:0,ac:0};porAg[p.agente].t+=p.dur;porAg[p.agente].n++;porAg[p.agente].e+=p.excedente||0;if((p.excedente||0)>0)porAg[p.agente].ac++});
+  let h='<div class="grid">';
+  h+=card('Tempo total improdutivo',H(total),'pausas pessoais','warn');
+  h+=card('Quantidade de pausas',ps.length,'média '+H(total/(ps.length||1))+' por pausa','');
+  h+=card('% da jornada logada',PC(100*total/(con||1)),'do tempo conectado','');
+  h+=card('Acima do limite',acima.length,H(exc)+' de excedente',acima.length?'bad':'ok');
+  h+=card('Colaboradores com excesso',Object.values(porAg).filter(x=>x.ac>0).length,'de '+Object.keys(porAg).length+' com pausa','warn');
+  h+='</div>';
+  h+='<div class="two">';
+  h+=`<div class="panel"><div class="ph"><h2>Tempo por categoria</h2></div><div class="chart" id="cImprCat"></div></div>`;
+  h+=`<div class="panel"><div class="ph"><h2>Excedente por colaborador</h2></div><div class="chart" id="cImprEx"></div></div>`;
+  h+='</div>';
+  h+=panel('Mapa de calor — minutos de pausa por hora',heatmap(ps),'<span class="n">quanto mais intenso, mais tempo em pausa naquela hora</span>');
+  h+=panel('Recorrência por colaborador',`<table><thead><tr><th>Colaborador</th><th>Pausas</th><th>Tempo</th><th>Acima do limite</th><th>Excedente</th></tr></thead><tbody>`
+   +Object.entries(porAg).sort((a,b)=>b[1].e-a[1].e).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${v.n}</td><td class="num">${H(v.t)}</td><td class="num">${v.ac}</td><td class="num">${v.e>0?'<span class="tag t-bad">'+HM(v.e)+'</span>':'—'}</td></tr>`).join('')
+   +`</tbody></table>`);
+  h+=panel('Pausas acima do limite',`<table><thead><tr><th>Colaborador</th><th>Tipo</th><th>Início</th><th>Duração</th><th>Limite</th><th>Excedente</th></tr></thead><tbody>`
+   +(acima.length?acima.sort((a,b)=>b.excedente-a.excedente).map(p=>`<tr><td>${esc(p.agente)}</td><td>${esc(p.tipo)}</td><td class="num">${hhmmss(p.ini)}</td><td class="num">${H(p.dur)}</td><td class="num">${H(p.limite)}</td><td class="num"><span class="tag t-bad">${HM(p.excedente)}</span></td></tr>`).join(''):'<tr><td colspan="6" class="n">Nenhuma pausa acima do limite no recorte.</td></tr>')
+   +`</tbody></table>`);
+  h+=`<div class="note">Limites aplicados: banheiro 8 min e água 5 min (configuráveis). Almoço, lanche e demais tipos dependem da escala e de justificativa, por isso não são classificados automaticamente como irregulares.</div>`;
+  document.getElementById('impr').innerHTML=h;
+  draw('cImprCat',{type:'bar',data:{labels:Object.keys(porCat),datasets:[{data:Object.values(porCat).map(v=>+(v/3600).toFixed(2)),backgroundColor:'#ff7043',borderWidth:0}]},options:baseOpts({indexAxis:'y',plugins:{legend:{display:false}}})});
+  const exTop=Object.entries(porAg).filter(x=>x[1].e>0).sort((a,b)=>b[1].e-a[1].e).slice(0,10);
+  draw('cImprEx',{type:'bar',data:{labels:exTop.length?exTop.map(x=>x[0]):['Sem excedente'],datasets:[{label:'minutos',data:exTop.length?exTop.map(x=>Math.round(x[1].e/60)):[0],backgroundColor:'#b3261e',borderWidth:0}]},options:baseOpts({indexAxis:'y',plugins:{legend:{display:false}}})});
+}
+function heatmap(ps){
+  const horas=[];for(let i=8;i<=23;i++)horas.push(i);
+  const ags=[...new Set(ps.map(p=>p.agente))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const grid={};ps.forEach(p=>{const h=hora(p.ini);if(h===null)return;const k=p.agente+'|'+h;grid[k]=(grid[k]||0)+p.dur/60});
+  const max=Math.max(1,...Object.values(grid));
+  let t='<div style="overflow-x:auto"><table class="hm"><thead><tr><th></th>'+horas.map(h=>`<th>${String(h).padStart(2,'0')}</th>`).join('')+'</tr></thead><tbody>';
+  ags.forEach(a=>{t+=`<tr><th style="text-align:left;white-space:nowrap;font-size:10.5px">${esc(a)}</th>`+horas.map(h=>{
+    const v=grid[a+'|'+h]||0;const al=v?Math.max(.12,v/max):0;
+    return `<td><div class="cell" style="background:${v?'rgba(255,112,67,'+al.toFixed(2)+')':'var(--surface2)'}" title="${esc(a)} ${String(h).padStart(2,'0')}h — ${v?Math.round(v)+' min':'sem pausa'}"></div></td>`}).join('')+'</tr>'});
+  return t+'</tbody></table></div>';
+}
+
+/* ---------- 5. ENCERRAMENTO ---------- */
+function encPause(a){const l=P.filter(x=>x.agente===a&&x.grupo==='C').sort((x,y)=>new Date(y.ini)-new Date(x.ini));return l.length?l[0]:null}
+function encDuplicados(){return [...new Set(P.filter(p=>p.grupo==='C').map(p=>p.agente))].filter(a=>P.filter(p=>p.agente===a&&p.grupo==='C').length>1)}
+function encDif(r){const p=encPause(r.agente);if(!p||!r.prevSai)return null;return Math.round((new Date(p.ini)-new Date(r.prevSai))/1000)}
+function encerramentoForaJanela(js){return js.filter(r=>{const d=encDif(r);return d!==null&&Math.abs(d)>r.janela*60})}
+function renderEncer(){
+  const js=fJ().filter(r=>r.conectado!==null);
+  const enc=js.map(r=>({r,p:encPause(r.agente)})).filter(x=>x.p);
+  const fora=enc.filter(x=>{const d=(new Date(x.p.ini)-new Date(x.r.prevSai))/1000;return Math.abs(d)>x.r.janela*60});
+  const semEnc=js.filter(r=>!encPause(r.agente));
+  const dup=encDuplicados();
+  const total=enc.reduce((a,x)=>a+x.p.dur,0);
+  let h='<div class="grid">';
+  h+=card('Registros de encerramento',enc.length,'de '+js.length+' colaboradores','');
+  h+=card('Fora da janela',fora.length,'janela por turno ±15 min',fora.length?'bad':'ok');
+  h+=card('Tempo total',H(total),'média '+H(total/(enc.length||1)),'');
+  h+=card('Sem registro de encerramento',semEnc.length,semEnc.map(r=>r.agente).join(', ')||'—','warn');
+  h+=card('Encerramento duplicado',dup.length,dup.length?dup.join(', '):'nenhum',dup.length?'warn':'ok');
+  h+='</div>';
+  h+=panel('Validação do encerramento por turno',`<div style="overflow-x:auto"><table><thead><tr><th>Colaborador</th><th>Turno</th><th>Fim previsto</th><th>Início do encerr.</th><th>Antecedência</th><th>Tempo</th><th>Último logout</th><th>Situação</th></tr></thead><tbody>`
+   +enc.sort((a,b)=>(new Date(a.p.ini)-new Date(a.r.prevSai))-(new Date(b.p.ini)-new Date(b.r.prevSai))).map(x=>{
+     const d=Math.round((new Date(x.p.ini)-new Date(x.r.prevSai))/1000);
+     const lim=x.r.janela*60;
+     const sit = Math.abs(d)<=lim ? '<span class="tag t-ok">dentro da janela</span>' : (d<0?'<span class="tag t-bad">antes da janela</span>':'<span class="tag t-warn">depois da janela</span>');
+     return `<tr><td>${esc(x.r.agente)}</td><td class="num">${esc(x.r.turno)}</td><td class="num">${hhmm(x.r.prevSai)}</td><td class="num">${hhmmss(x.p.ini)}</td>
+     <td class="num">${HM(d)}</td><td class="num">${H(x.p.dur)}</td><td class="num">${hhmmss(x.p.fim)}</td>
+     <td>${sit}</td></tr>`}).join('')
+   +`</tbody></table></div>`,'<span class="n">janela configurável por turno (padrão ±15 min)</span>');
+  h+=panel('Tempo de encerramento por colaborador',`<div class="chart" id="cEnc"></div>`);
+  h+=`<div class="note"><b>Encerramento antecipado não é irregularidade por si só.</b> É preciso checar autorização e ajuste de escala. Nesta base, Adriel abriu o encerramento às 15:10 para turno previsto até 18:00, e o tempo de encerramento variou de 22 segundos (Kawane) a 19min40 (Kayke).</div>`;
+  document.getElementById('encer').innerHTML=h;
+  const ord=enc.slice().sort((a,b)=>b.p.dur-a.p.dur);
+  draw('cEnc',{type:'bar',data:{labels:ord.map(x=>x.r.agente),datasets:[{label:'minutos',data:ord.map(x=>Math.round(x.p.dur/60)),backgroundColor:'#00439c',borderWidth:0}]},options:baseOpts({plugins:{legend:{display:false}}})});
+}
+
+/* ---------- 6. COLABORADORES ---------- */
+function renderColab(sel){
+  if(!sel||!nomes.includes(sel))sel=nomes[0];
+  const r=J.find(x=>x.agente===sel);
+  const ps=P.filter(p=>p.agente===sel), ss=SE.filter(s=>s.agente===sel);
+  let h=`<div class="panel"><div class="ph"><h2>Linha do tempo do dia</h2><select id="selCol">${nomes.map(n=>`<option ${n===sel?'selected':''}>${esc(n)}</option>`).join('')}</select></div>`;
+  h+='<div class="facts">';
+  h+=`<div class="fact"><div class="k">Turno</div><div class="v num">${esc(r.turno)}</div></div>`;
+  h+=`<div class="fact"><div class="k">Previsto</div><div class="v num">${r.hEnt}–${r.hSai}</div></div>`;
+  h+=`<div class="fact"><div class="k">Entrada (1º log)</div><div class="v num">${hhmmss(r.login)}</div></div>`;
+  h+=`<div class="fact"><div class="k">Último logout</div><div class="v num">${hhmmss(r.logout)} ${dia(r.logout)}</div></div>`;
+  h+=`<div class="fact"><div class="k">Logado</div><div class="v num">${H(r.conectado)}</div></div>`;
+  h+=`<div class="fact"><div class="k">Atendimento</div><div class="v num">${H(r.atendimento)}</div></div>`;
+  h+=`<div class="fact"><div class="k">Produtiva</div><div class="v num">${H(r.produtiva)}</div></div>`;
+  h+=`<div class="fact"><div class="k">Improdutiva</div><div class="v num">${H(r.improdutiva)}</div></div>`;
+  h+=`<div class="fact"><div class="k">Encerramento</div><div class="v num">${H(r.encerramento)}</div></div>`;
+  h+=`<div class="fact"><div class="k">Atraso</div><div class="v num">${HM(r.atraso)}</div></div>`;
+  h+=`<div class="fact"><div class="k">Saída vs previsto</div><div class="v num">${HM(r.saidaDif)}</div></div>`;
+  h+=`<div class="fact"><div class="k">Cumprimento</div><div class="v num">${PC(r.cumpr)}</div></div>`;
+  h+='</div>';
+  h+= r.conectado===null?'<div class="note"><b>Sem registro de log neste dia.</b> A linha do tempo fica vazia por ausência de dado, não por jornada zerada.</div>'
+     :'<div class="tl" id="tl"></div><div class="tl-scale" id="tls"></div><div class="legend-inline"><span><i style="background:#00439c"></i>Conectado</span><span><i style="background:#fbb900"></i>Pausa produtiva</span><span><i style="background:#ff7043"></i>Pausa improdutiva</span><span><i style="background:#98a2b3"></i>Encerramento</span><span><i style="background:var(--bad)"></i>Desconexão</span></div><div id="det" class="note">Clique em um bloco para ver os detalhes.</div>';
+  h+='</div>';
+  h+=panel('Pausas do dia — '+esc(sel),`<table><thead><tr><th>Tipo</th><th>Grupo</th><th>Início</th><th>Fim</th><th>Duração</th><th>Limite</th><th>Excedente</th></tr></thead><tbody>`
+   +(ps.length?ps.map(p=>`<tr><td>${esc(p.tipo)}</td><td><span class="tag ${tagTone(p.grupo)}">${p.grupo==='A'?'produtiva':p.grupo==='B'?'improdutiva':'encerramento'}</span></td><td class="num">${hhmmss(p.ini)}</td><td class="num">${hhmmss(p.fim)}</td><td class="num">${H(p.dur)}</td><td class="num">${p.limite?H(p.limite):'—'}</td><td class="num">${(p.excedente||0)>0?'<span class="tag t-bad">'+HM(p.excedente)+'</span>':'—'}</td></tr>`).join(''):'<tr><td colspan="7" class="n">Sem pausas registradas.</td></tr>')
+   +`</tbody></table>`);
+  document.getElementById('colab').innerHTML=h;
+  if(r.conectado!==null){
+    document.getElementById('selCol').onchange=e=>renderColab(e.target.value);
+    timeline(r,ss,ps);
+  }
+}
+function timeline(r,ss,ps){
+  const marks=[r.prevEnt,r.prevSai,...ss.flatMap(s=>[s.login,s.logout]),...ps.flatMap(p=>[p.ini,p.fim])].filter(Boolean).map(x=>new Date(x).getTime());
+  const t0=new Date(Math.min(...marks)), t1=new Date(Math.max(...marks)), span=Math.max(t1-t0,1000);
+  const pos=t=>100*((new Date(t).getTime()-t0.getTime())/span);
+  const segs=[];
+  ss.forEach((s,i)=>{if(s.logout)segs.push({a:pos(s.login),b:pos(s.logout),c:'sess',ev:'Sessão conectada',ini:s.login,fim:s.logout,dur:s.dur});
+    if(i>0&&ss[i-1].logout){const gap=(new Date(s.login)-new Date(ss[i-1].logout))/1000;if(gap>0)segs.push({a:pos(ss[i-1].logout),b:pos(s.login),c:'c',ev:'Desconexão',ini:ss[i-1].logout,fim:s.login,dur:gap})}});
+  ps.forEach(p=>{if(!p.fim)return;segs.push({a:pos(p.ini),b:pos(p.fim),c:p.grupo==='A'?'a':p.grupo==='B'?'b':'c',ev:p.tipo,ini:p.ini,fim:p.fim,dur:p.dur,exc:p.excedente||0})});
+  document.getElementById('tl').innerHTML=segs.map(s=>`<div class="seg ${s.c}" style="left:${s.a}%;width:${Math.max(.35,s.b-s.a)}%" data-ev="${esc(s.ev)}" data-ini="${s.ini}" data-fim="${s.fim}" data-dur="${s.dur||0}" data-exc="${s.exc||0}"></div>`).join('');
+  document.getElementById('tls').innerHTML=`<span>${hhmm(t0)}</span><span>${hhmm(new Date((t0.getTime()+t1.getTime())/2))}</span><span>${hhmm(t1)}</span>`;
+  document.querySelectorAll('#tl .seg').forEach(el=>el.onclick=()=>{
+    document.getElementById('det').innerHTML=`<b>${el.dataset.ev}</b> · início ${hhmmss(+new Date(el.dataset.ini))} · fim ${hhmmss(+new Date(el.dataset.fim))} · duração ${H(+el.dataset.dur)}${+el.dataset.exc>0?' · excedente '+HM(+el.dataset.exc):''}`;
+  });
+}
+
+/* ---------- 7. RANKINGS ---------- */
+function renderRank(){
+  const js=fJ().filter(r=>r.conectado!==null);
+  const lista=(arr,fmt,n)=>arr.slice(0,n||17).map((r,i)=>`<div class="row"><span><span class="pos">${i+1}</span>${esc(r.agente)}</span><span class="num">${fmt(r)}</span></div>`).join('');
+  const r1=js.slice().sort((a,b)=>b.cumpr-a.cumpr);
+  const r2=js.slice().sort((a,b)=>Math.abs(a.atraso)-Math.abs(b.atraso));
+  const util=r=>Math.max(0,r.conectado-r.improdutiva-r.encerramento);
+  const r3=js.slice().sort((a,b)=>(util(b)/b.conectado)-(util(a)/a.conectado));
+  const r4=js.slice().sort((a,b)=>util(b)-util(a));
+  const r5=js.slice().sort((a,b)=>b.improdutiva-a.improdutiva);
+  const r6=js.slice().sort((a,b)=>b.acimaLimite-a.acimaLimite||b.excedente-a.excedente);
+  const r8=js.map(r=>{const p=P.find(x=>x.agente===r.agente&&x.grupo==='C');const d=p?Math.round((new Date(p.ini)-new Date(r.prevSai))/1000):null;return {...r,difEnc:d}}).filter(r=>r.difEnc!==null).sort((a,b)=>Math.abs(b.difEnc)-Math.abs(a.difEnc));
+  let h='<div class="panel"><div class="ph"><h2>Rankings do dia</h2><span class="n">normalizados por jornada prevista · 1 dia de base</span></div><div class="two">';
+  h+=`<div class="rk"><div class="k">1. Cumprimento da jornada</div>${lista(r1,r=>PC(r.cumpr))}</div>`;
+  h+=`<div class="rk"><div class="k">2. Pontualidade no log</div>${lista(r2,r=>HM(r.atraso))}</div>`;
+  h+=`<div class="rk"><div class="k">3. % do tempo produtivo (online sem pausa)</div>${lista(r3,r=>PC(100*util(r)/r.conectado))}</div>`;
+  h+=`<div class="rk"><div class="k">4. Maior tempo produtivo</div>${lista(r4,r=>H(util(r))+' · '+H(r.atendimento)+' online + '+H(r.produtiva)+' atividade')}</div>`;
+  h+=`<div class="rk"><div class="k">5. Maior tempo improdutivo</div>${lista(r5,r=>H(r.improdutiva)+(r.excedente?' · '+HM(r.excedente)+' exc.':''))}</div>`;
+  h+=`<div class="rk"><div class="k">6. Recorrência de excesso de pausa</div>${lista(r6,r=>r.acimaLimite+' ocorrências')}</div>`;
+  h+=`<div class="rk"><div class="k">7. Inconsistência entre canais</div><div class="n" style="padding:6px 0">Validação indisponível — sem integração de status de canal. Ranking não calculado para não gerar acusação sem evidência.</div></div>`;
+  h+=`<div class="rk"><div class="k">8. Encerramento fora da janela</div>${lista(r8,r=>HM(r.difEnc))}</div>`;
+  h+='</div>';
+  h+='<div class="note"><b>Regra do tempo produtivo:</b> colaborador online e sem pausa está sendo produtivo. Tempo produtivo = tempo conectado menos pausas improdutivas e menos encerramento por turno, somando o tempo em atendimento (online sem pausa) e o tempo em atividades produtivas. Por isso quem não registrou pausa do grupo A não aparece mais com 0%.</div>';
+  h+='</div>';
+  h+=panel('Evolução e comparativos por período','<div class="missing">Base atual: 22 a 30/10/2026 (6 dias úteis fechados). A variação semanal exige a semana anterior (15 a 21/10), que ainda não está carregada; mensal, trimestral e anual seguem sem base. <br><br>Quando os dias anteriores forem sincronizados, esta área passa a exibir as 8 séries de evolução (pontualidade, cumprimento, pausa produtiva, pausa improdutiva, excessos, alertas de log, inconsistências de canal e conformidade de encerramento) com variação absoluta e percentual contra o período equivalente anterior.</div>');
+  h+=`<div class="panel"><div class="ph"><h2>Comparativo disponível: por turno</h2></div><div class="chart" id="cTurno"></div></div>`;
+  document.getElementById('rank').innerHTML=h;
+  const ts=turnos.map(t=>{const rs=js.filter(r=>r.turno===t);return {t,n:rs.length,cumpr:rs.length?rs.reduce((a,r)=>a+r.cumpr,0)/rs.length:0,impr:rs.reduce((a,r)=>a+r.improdutiva,0)/3600}});
+  draw('cTurno',{type:'bar',data:{labels:ts.map(x=>x.t),datasets:[{label:'Cumprimento médio (%)',data:ts.map(x=>+x.cumpr.toFixed(1)),backgroundColor:'#00439c',borderWidth:0,yAxisID:'y'}]},options:baseOpts({})});
+}
+
+/* ---------- 8. ATENÇÃO DA GESTÃO ---------- */
+function renderAtencao(){
+  const js=fJ().filter(r=>r.conectado!==null);
+  const gen=[];
+  js.forEach(r=>{
+    if(r.conectado>28800) gen.push({a:r.agente,t:'Log acima de 8 horas',g:r.conectado>46800?'alto':'moderado',ev:`${H(r.conectado)} logado contra ${H(r.carga*60)} previstos (${HM(r.conectado-r.carga*60)} acima).`,s:'Confirmar se a permanência foi autorizada; checar sessão sem logout antes de tratar como hora efetiva.'});
+    const dif=r.conectado-r.carga*60;
+    if(dif>900&&r.conectado<=28800) gen.push({a:r.agente,t:'Log acima da jornada prevista',g:'moderado',ev:`${HM(dif)} além do previsto (${H(r.carga*60)}).`,s:'Validar com a liderança se houve extensão autorizada ou registro indevido.'});
+    if(r.atraso>300) gen.push({a:r.agente,t:'Atraso na entrada',g:r.atraso>900?'alto':'moderado',ev:`Entrada ${HH(r.atraso)} após o previsto (${r.hEnt}).`,s:'Verificar recorrência na semana antes de tratar como padrão individual.'});
+    if(r.saidaDif<-300) gen.push({a:r.agente,t:'Encerramento antecipado',g:'alto',ev:`Saída ${HM(r.saidaDif)} em relação ao previsto (${r.hSai}).`,s:'Confirmar autorização e reposição prevista na escala.'});
+    if(r.acimaLimite>=2) gen.push({a:r.agente,t:'Recorrência de pausa acima do limite',g:'moderado',ev:`${r.acimaLimite} pausas acima do limite, excedente total ${HM(r.excedente)}.`,s:'Acompanhar na semana; verificar se as pausas coincidem com picos de fila.'});
+  });
+  js.forEach(r=>{const d=encDif(r);if(d===null)return;
+    if(Math.abs(d)>r.janela*60) gen.push({a:r.agente,t:'Encerramento fora da janela',g:'alto',ev:`Encerramento iniciado ${HM(d)} em relação ao fim previsto (${r.hSai}).`,s:'Validar se houve autorização para encerrar fora da janela configurada.'});});
+  encDuplicados().forEach(a=>{const n=P.filter(p=>p.agente===a&&p.grupo==='C').length;const r=J.find(x=>x.agente===a)||{};
+    gen.push({a:a,t:'Encerramento registrado mais de uma vez',g:'moderado',ev:`${n} registros de encerramento no mesmo dia, no turno ${r.turno||''}.`,s:'Verificar se houve troca de pausa por engano; se recorrente, orientar o uso correto do encerramento.'});});
+  const semLog=fJ().filter(r=>r.conectado===null);
+  let h='<div class="grid">';
+  h+=card('Alertas calculados',gen.length,'regras de log e jornada',gen.length?'warn':'ok');
+  h+=card('Alertas registrados',AL.length,'base de alertas do dia','' );
+  h+=card('Colaboradores sem log',semLog.length,semLog.map(r=>r.agente).join(', ')||'—',semLog.length?'bad':'ok');
+  h+=card('Encerramento fora da janela',encerramentoForaJanela(js).length,'janela ±15 min',encerramentoForaJanela(js).length?'bad':'ok');
+  h+=card('Encerramento duplicado',encDuplicados().length,encDuplicados().join(', ')||'nenhum',encDuplicados().length?'warn':'ok');
+  h+='</div>';
+  h+=panel('Quem precisa de verificação hoje',gen.length?gen.sort((a,b)=>({alto:0,moderado:1}[a.g]-{alto:0,moderado:1}[b.g])).map(a=>`<div class="al"><div class="ah"><span class="nm">${esc(a.a)}</span><span class="tag ${a.g==='alto'?'t-bad':'t-warn'}">${a.g}</span><span class="tag t-mut">${esc(a.t)}</span><span class="tag t-mut">${esc((J.find(r=>r.agente===a.a)||{}).turno||'')}</span></div><p class="ev">${esc(a.ev)}</p><div class="ac">${esc(a.s)}</div></div>`).join(''):'<div class="missing">Nenhum alerta calculado no recorte.</div>','<span class="n">gerado pelas regras de log</span>');
+  h+=panel('Alertas registrados no dia',AL.map(a=>`<div class="al"><div class="ah"><span class="nm">${esc(a.agente)}</span><span class="tag ${a.grav==='alto'?'t-bad':a.grav==='moderado'?'t-warn':'t-mut'}">${esc(a.grav)}</span><span class="tag t-mut">${esc(String(a.status).replace('_',' '))}</span></div><p>${esc(a.tipo)} · <b>${esc(a.indicador||'')}</b> · ${a.ocorr} ocorrência(s)</p><p class="ev">${esc(a.evid||'')}</p><div class="ac">${esc(a.sugest||'')}</div></div>`).join(''));
+  h+=panel('Concentração por turno',`<div class="chart" id="cAlerta"></div>`);
+  h+=`<div class="note"><b>Leitura correta:</b> alerta é indicação para verificação, não conclusão de conduta. Ausência de log e inconsistência de registro apontam falha de dado ou de sistema. Inconsistência de canal não é calculada por falta de integração de status.</div>`;
+  document.getElementById('atencao').innerHTML=h;
+  const ts=turnos.map(t=>({t,n:gen.filter(a=>(J.find(r=>r.agente===a.a)||{}).turno===t).length}));
+  draw('cAlerta',{type:'bar',data:{labels:ts.map(x=>x.t),datasets:[{label:'alertas',data:ts.map(x=>x.n),backgroundColor:'#ff7043',borderWidth:0}]},options:baseOpts({plugins:{legend:{display:false}}})});
+}
+function HH(s){return HM(s)}
+
+/* ---------- NAV ---------- */
+function go(t){document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+ document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===t));window.scrollTo({top:0,behavior:'smooth'})}
+function openColab(n){go('colab');renderColab(n)}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.t));
+document.querySelectorAll('#perPills button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#perPills button').forEach(x=>x.classList.toggle('on',x===b));
+  state.per=b.dataset.per;
+  if(b.dataset.per!=='dia'&&!document.getElementById('fData').value)document.getElementById('fData').value=state.data;
+  document.getElementById('fPer').value=b.dataset.per;
+  banner();renderAll();
+});
+['fPer','fNiv','fTur','fCol','fData','fMes'].forEach(id=>document.getElementById(id).onchange=e=>{
+  if(id==='fPer')state.per=e.target.value;if(id==='fNiv')state.niv=e.target.value;
+  if(id==='fTur')state.tur=e.target.value;if(id==='fCol')state.col=e.target.value;
+  if(id==='fData'){state.data=e.target.value;document.getElementById('fMes').value=state.data.slice(0,7);
+(async()=>{
+  const msg='<div class="panel"><p class="n">Carregando dados do Supabase…</p></div>';
+  ['visao','ponto','logs','prod','impr','encer','colab','rank','atencao'].forEach(k=>{const el=document.getElementById(k);if(el)el.innerHTML=msg});
+  try{
+    await carregar();
+    state.data=DATAS[DATAS.length-1];state.mes=state.data.slice(0,7);
+    document.getElementById('fData').value=state.data;
+    document.getElementById('fMes').value=state.mes;
+    document.getElementById('fTur').innerHTML='<option value="">Todos os turnos</option>'+turnos.map(t=>`<option>${esc(t)}</option>`).join('');
+    document.getElementById('fCol').innerHTML='<option value="">Todos os colaboradores</option>'+nomes.map(t=>`<option>${esc(t)}</option>`).join('');
+    await Promise.all([loadObs(),loadNU()]);
+    renderAll();
+  }catch(e){
+    ['visao'].forEach(k=>document.getElementById(k).innerHTML='<div class="panel"><p class="n" style="color:var(--bad)">Não foi possível carregar os dados: '+esc(e.message)+'</p></div>');
+  }
+})();return}
+  if(id==='fMes'){state.mes=e.target.value;state.data=e.target.value+'-01';document.getElementById('fData').value=state.data;if(state.per==='dia')state.per='mes';document.getElementById('fPer').value=state.per;
+(async()=>{
+  const msg='<div class="panel"><p class="n">Carregando dados do Supabase…</p></div>';
+  ['visao','ponto','logs','prod','impr','encer','colab','rank','atencao'].forEach(k=>{const el=document.getElementById(k);if(el)el.innerHTML=msg});
+  try{
+    await carregar();
+    state.data=DATAS[DATAS.length-1];state.mes=state.data.slice(0,7);
+    document.getElementById('fData').value=state.data;
+    document.getElementById('fMes').value=state.mes;
+    document.getElementById('fTur').innerHTML='<option value="">Todos os turnos</option>'+turnos.map(t=>`<option>${esc(t)}</option>`).join('');
+    document.getElementById('fCol').innerHTML='<option value="">Todos os colaboradores</option>'+nomes.map(t=>`<option>${esc(t)}</option>`).join('');
+    await Promise.all([loadObs(),loadNU()]);
+    renderAll();
+  }catch(e){
+    ['visao'].forEach(k=>document.getElementById(k).innerHTML='<div class="panel"><p class="n" style="color:var(--bad)">Não foi possível carregar os dados: '+esc(e.message)+'</p></div>');
+  }
+})();return}
+  banner();renderAll();});
+
+function syncTopo(){
+  const ds=fJ().map(r=>r.data).sort();
+  const ano=ds.length?ds[ds.length-1].slice(0,4):'';
+  const rng=ds.length?(ds[0]===ds[ds.length-1]?dBR(ds[0])+'/'+ano:dBR(ds[0])+' a '+dBR(ds[ds.length-1])+'/'+ano):'sem base';
+  const el=document.getElementById('bLive');if(el)el.textContent='DADOS REAIS · '+rng;
+  document.querySelectorAll('#perPills button').forEach(x=>x.classList.toggle('on',x.dataset.per===state.per));
+}
+function renderAll(){
+  syncTopo();
+ if(!fJ().length){
+   const msg='<div class="missing">Sem registros para o recorte selecionado ('+(state.per==='dia'?state.data:state.per)+'). A base tem apenas 29/10/2026 carregado.</div>';
+   ['visao','ponto','logs','prod','impr','encer','colab','rank','atencao'].forEach(k=>document.getElementById(k).innerHTML=msg);
+   return;
+ }
+ renderVisao();renderPonto();renderLogs();renderProd();renderImpr();renderEncer();renderColab(state.col||undefined);renderRank();renderAtencao()}
+banner();
+
+(async()=>{
+  const msg='<div class="panel"><p class="n">Carregando dados do Supabase…</p></div>';
+  ['visao','ponto','logs','prod','impr','encer','colab','rank','atencao'].forEach(k=>{const el=document.getElementById(k);if(el)el.innerHTML=msg});
+  try{
+    await carregar();
+    state.data=DATAS[DATAS.length-1];state.mes=state.data.slice(0,7);
+    document.getElementById('fData').value=state.data;
+    document.getElementById('fMes').value=state.mes;
+    document.getElementById('fTur').innerHTML='<option value="">Todos os turnos</option>'+turnos.map(t=>`<option>${esc(t)}</option>`).join('');
+    document.getElementById('fCol').innerHTML='<option value="">Todos os colaboradores</option>'+nomes.map(t=>`<option>${esc(t)}</option>`).join('');
+    await Promise.all([loadObs(),loadNU()]);
+    renderAll();
+  }catch(e){
+    ['visao'].forEach(k=>document.getElementById(k).innerHTML='<div class="panel"><p class="n" style="color:var(--bad)">Não foi possível carregar os dados: '+esc(e.message)+'</p></div>');
+  }
+})();
+</script>
+</body></html>
