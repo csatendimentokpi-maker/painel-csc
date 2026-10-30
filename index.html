@@ -343,7 +343,8 @@ function renderVisao(){
   });
   h+=`<p class="n" style="margin-top:10px;cursor:pointer" onclick="go('atencao')" style="color:var(--brand-2);font-weight:700">Alertas detalhados no módulo específico →</p></div></div>`;
 
-  const rows=comLog.slice().sort((a,b)=>(b.alerta==='critico_max'?1:0)-(a.alerta==='critico_max'?1:0));
+  const peso=r=>({critico_max:4,critico:3,elevado:2,atencao:1,normal:0}[r.alertaLog]||0);
+  const rows=comLog.slice().sort((a,b)=>(peso(b)-peso(a))||((a.cumpr===null?999:a.cumpr)-(b.cumpr===null?999:b.cumpr))).slice(0,10);
   h+=panel('Resumo por colaborador',
     '<table><thead><tr><th>Colaborador</th><th>Log previsto</th><th>Log registrado</th><th>Produtivas</th><th>Pessoais</th><th>Jornada</th><th>Situação</th></tr></thead><tbody>'
     +rows.map(r=>{
