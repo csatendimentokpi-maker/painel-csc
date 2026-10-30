@@ -267,7 +267,9 @@ function banner(){
   const el=document.getElementById('banner');
   if(state.per!=='dia'){
     const nome={sem:'semanal',qui:'quinzenal',mes:'mensal',tri:'trimestral',ano:'anual'}[state.per];
-    el.innerHTML=`<div class="banner"><b>Visão ${nome}.</b> A base cobre 22 a 30/10/2026 (6 dias úteis fechados). O recorte ${nome} soma apenas os dias carregados, e o comparativo com o período anterior equivalente fica indisponível até a semana de 15 a 21/10 ser sincronizada.</div>`;
+    const ds=DATAS.slice().sort();const ini=ds[0]||'',fim=ds[ds.length-1]||'';
+    const uteis=ds.filter(d=>{const w=new Date(d+'T12:00:00').getDay();return w!==0&&w!==6}).length;
+    el.innerHTML=`<div class="banner"><b>Visão ${nome}.</b> Base carregada de ${dBR(ini)} a ${dBR(fim)} (${uteis} dias úteis). O recorte ${nome} soma os dias disponíveis no intervalo, e o comparativo usa o período anterior quando ele já está na base.</div>`;
   } else if(state.niv==='equ'){
     el.innerHTML='<div class="banner"><b>Equipe = CSC.</b> Todos os 17 colaboradores pertencem ao mesmo setor, então a visão por equipe coincide com o consolidado. A separação por turno está disponível no filtro de nível.</div>';
   } else el.innerHTML='';
@@ -788,7 +790,8 @@ function renderRank(){
   h+='</div>';
   h+='<div class="note"><b>Regra do tempo produtivo:</b> colaborador online e sem pausa está sendo produtivo. Tempo produtivo = tempo conectado menos pausas improdutivas e menos encerramento por turno, somando o tempo em atendimento (online sem pausa) e o tempo em atividades produtivas. Por isso quem não registrou pausa do grupo A não aparece mais com 0%.</div>';
   h+='</div>';
-  h+=panel('Evolução e comparativos por período','<div class="missing">Base atual: 22 a 30/10/2026 (6 dias úteis fechados). A variação semanal exige a semana anterior (15 a 21/10), que ainda não está carregada; mensal, trimestral e anual seguem sem base. <br><br>Quando os dias anteriores forem sincronizados, esta área passa a exibir as 8 séries de evolução (pontualidade, cumprimento, pausa produtiva, pausa improdutiva, excessos, alertas de log, inconsistências de canal e conformidade de encerramento) com variação absoluta e percentual contra o período equivalente anterior.</div>');
+  const _ds=DATAS.slice().sort();
+  h+=panel('Evolução e comparativos por período','<div class="missing">Base atual: '+dBR(_ds[0]||'')+' a '+dBR(_ds[_ds.length-1]||'')+' ('+_ds.filter(d=>{const w=new Date(d+'T12:00:00').getDay();return w!==0&&w!==6}).length+' dias úteis). O histórico de outubro já permite comparar semana contra semana e mês parcial contra o mesmo intervalo do mês anterior quando houver base. <br><br>As séries de evolução (pontualidade, cumprimento, pausa produtiva, pausa improdutiva, excessos, alertas de log, inconsistências de canal e conformidade de encerramento) aparecem com variação absoluta e percentual sempre que o período anterior equivalente estiver carregado.</div>');
   h+=`<div class="panel"><div class="ph"><h2>Comparativo disponível: por turno</h2></div><div class="chart" id="cTurno"></div></div>`;
   document.getElementById('rank').innerHTML=h;
   const ts=turnos.map(t=>{const rs=js.filter(r=>r.turno===t);return {t,n:rs.length,cumpr:rs.length?rs.reduce((a,r)=>a+r.cumpr,0)/rs.length:0,impr:rs.reduce((a,r)=>a+r.improdutiva,0)/3600}});
