@@ -310,16 +310,19 @@ function calc(deIso,ateIso){
       dd.q+=v.q; dd.te+=v.te; dd.a20+=v.a20; dd.ta+=v.ta; dd.tm+=v.tm;
     }
     // jornada
-    let log=0,pa=0,pb=0,pc=0,exc=0,np=0,excN=0,diasLog=0,logLong=0,log13=0,log16=0,log18=0;
+    let log=0,pa=0,pb=0,pc=0,exc=0,np=0,excN=0,diasLog=0,logLong=0,log13=0,log16=0,log18=0,excJor=0;
     (RAW.jor[nome]||[]).forEach(function(r){
       if(r[0]<lo||r[0]>hi) return;
       log+=r[1]; pa+=r[2]; pb+=r[3]; pc+=r[4]; exc+=r[5]; np+=r[6]; excN+=r[7];
-      if(r[1]>0){ diasLog++; if(r[1]>28800) logLong++; if(r[1]>46800) log13++; if(r[1]>57600) log16++; if(r[1]>64800) log18++; }
+      if(r[1]>0){ diasLog++;
+        if(r[1]>28800) logLong++; if(r[1]>46800) log13++; if(r[1]>57600) log16++; if(r[1]>64800) log18++;
+        const cargaSeg=(esc.carga||0)*60; if(cargaSeg>0 && (r[1]-cargaSeg)>3600) excJor++;
+      }
     });
     agents[nome]={q:q,te:te,a20:a20,ta:ta,tm:tm,ns:q? a20/q*100:null,tme:q? te/q:null,
       tma:q? ta/q/6:null,tmia:q? tm/q:null,turno:turno,esc:esc,
       dProd:dProd,dMeta:dMeta,dFora:dFora,nsDias:nsDias,
-      log:log,pa:pa,pb:pb,pc:pc,exc:exc,np:np,excN:excN,diasLog:diasLog,logLong:logLong,log13:log13,log16:log16,log18:log18,
+      log:log,pa:pa,pb:pb,pc:pc,exc:exc,np:np,excN:excN,diasLog:diasLog,logLong:logLong,log13:log13,log16:log16,log18:log18,excJor:excJor,
       prod: log? q/(log/3600) : null};
   }
   // filas
@@ -559,12 +562,12 @@ function gerarAlertas(D0,DP0){
   }
   // logs prolongados por faixa (8h atenção, 13h elevado, 16h crítico, 18h crítico máximo)
   const logs=Object.keys(D0.agents).map(function(n){return Object.assign({name:n},D0.agents[n]);})
-    .filter(function(a){return a.log16>0||a.log13>0||a.logLong>0;})
-    .sort(function(a,b){ return (b.log18*1000+b.log16*100+b.log13*10+b.logLong)-(a.log18*1000+a.log16*100+a.log13*10+a.logLong); }).slice(0,3);
+    .filter(function(a){return a.log16>0||a.log13>0||a.excJor>0;})
+    .sort(function(a,b){ return (b.log18*2000+b.log16*500+b.log13*100+b.excJor)-(a.log18*2000+a.log16*500+a.log13*100+a.excJor); }).slice(0,3);
   if(logs.length){
     const maxF=logs[0].log18>0? "crítico máximo" : (logs[0].log16>0? "crítico" : (logs[0].log13>0? "elevado":"atenção"));
-    out.push({g: (logs[0].log16>0?"crítico":(logs[0].log13>0?"alto":"moderado")), tit:"Log prolongado acima da faixa de atenção — "+maxF,
-      ev:logs.map(function(a){var t=[]; if(a.logLong) t.push(a.logLong+" dia(s) >8h"); if(a.log13) t.push(a.log13+" >13h"); if(a.log16) t.push(a.log16+" >16h"); if(a.log18) t.push(a.log18+" >18h"); return a.name+" ("+t.join(", ")+", turno "+a.turno+")";}).join(" · "),
+    out.push({g: (logs[0].log16>0?"crítico":(logs[0].log13>0?"alto":"moderado")), tit:"Log acima da jornada prevista — "+maxF,
+      ev:logs.map(function(a){var t=[]; if(a.excJor) t.push(a.excJor+" dia(s) com mais de 1h acima da carga"); if(a.log13) t.push(a.log13+" dia(s) >13h"); if(a.log16) t.push(a.log16+" >16h"); if(a.log18) t.push(a.log18+" >18h"); return a.name+" ("+t.join(", ")+", turno "+a.turno+")";}).join(" · "),
       alvo:"Colaboradores", per:per, comp:"—",
       hip:"Sessão não encerrada no fim do turno ou cobertura de ausência sem registro formal.",
       acao:"Conferir encerramento de sessão e formalizar eventuais extensões.",
@@ -803,8 +806,16 @@ function renderJor(D0){
   document.querySelector("#tblJor tbody").innerHTML=ags.map(function(a){
     const carga=(a.esc&&a.esc.carga? a.esc.carga:0)*60*a.diasLog;
     const ader=carga? (a.log-a.pb-a.pc)/carga*100 : null;
-    const cls = ader===null? "t-mut" : (ader>=95?"t-ok":(ader>=85?"t-warn":"t-bad"));
-    const rot = a.logLong>=3? "log prolongado" : (ader===null?"sem escala":(ader>=95?"conforme":(ader>=85?"verificar pausa":"abaixo da jornada")));
+    let cls, rot;
+    if(a.log18>0){ cls="t-bad"; rot="log >18h (crítico máx)"; }
+    else if(a.log16>0){ cls="t-bad"; rot="log >16h (crítico)"; }
+    else if(a.log13>0){ cls="t-warn"; rot="log >13h (elevado)"; }
+    else if(a.excJor>0){ cls="t-warn"; rot="log acima da escala"; }
+    else if(ader===null){ cls="t-mut"; rot="sem escala"; }
+    else if(a.diasLog<8){ cls="t-mut"; rot="amostra curta"; }
+    else if(ader<85){ cls="t-bad"; rot="abaixo da jornada"; }
+    else if(ader<=105){ cls="t-ok"; rot="conforme"; }
+    else { cls="t-warn"; rot="acima da carga"; }
     return "<tr><td><b>"+esc(a.name)+"</b></td><td>"+esc(a.turno||"-")+"</td><td class='num'>"+(a.esc&&a.esc.entrada? a.esc.entrada+"–"+a.esc.saida : "-")+
       "</td><td class='num'>"+a.diasLog+"</td><td class='num'>"+h1f(a.log/3600)+" h</td><td class='num'>"+h1f(a.pa/3600)+" h"+
       "</td><td class='num'>"+h1f(a.pb/3600)+" h</td><td class='num'>"+h1f(a.exc/3600)+" h</td><td class='num'>"+(ader===null?"-":pct(ader,0))+
