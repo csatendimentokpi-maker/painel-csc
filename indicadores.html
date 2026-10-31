@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Indicadores CSC · Arroba Banda Larga</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f4f7f9; --card:#ffffff; --title:#1a2b4d; --muted:#6c757d; --line:#e6ebf1;
+  --blue:#0d6efd; --green:#198754; --orange:#fd7e14; --red:#dc3545; --purple:#6f42c1;
+  --radius:10px; --shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--title);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45}
+.wrap{max-width:1280px;margin:0 auto;padding:22px 20px 40px}
+.crumb{font-size:12px;color:var(--muted);letter-spacing:.02em;margin-bottom:6px}
+.crumb b{color:var(--blue);font-weight:600}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:26px;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px;max-width:760px}
+.badge{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:7px 12px;border-radius:999px;background:#fff8e1;color:#8a6d00;border:1px solid #ffe9a8;white-space:nowrap}
+.badge .dot{width:8px;height:8px;border-radius:50%;background:var(--orange)}
+.badge.live{background:#e8f5ee;color:#12653f;border-color:#bfe6d1}
+.badge.live .dot{background:var(--green)}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px}
+.grid-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.kpi{display:flex;flex-direction:column;gap:2px}
+.kpi .lbl{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.kpi .val{font-size:27px;font-weight:700;letter-spacing:-.02em;margin:2px 0}
+.kpi .foot{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;margin-top:6px}
+.tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px}
+.ok{background:#e8f5ee;color:#12653f}.bad{background:#fdecee;color:#a01827}.warn{background:#fff4e5;color:#a35a00}.neutral{background:#eef2f7;color:#4a5a70}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+h2{font-size:15px;margin:0 0 12px;font-weight:700;letter-spacing:-.01em}
+h2 span{font-weight:500;color:var(--muted);font-size:12px;margin-left:8px}
+.chart{height:240px;position:relative}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:700}
+td{padding:8px 10px;border-bottom:1px solid #f1f4f8;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:#f8fbff}
+tbody tr:hover{background:#eef5ff}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+th.num{text-align:right}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--blue)}
+.sec{margin-bottom:14px}
+.row3{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.mini{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.mini .lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.mini .val{font-size:20px;font-weight:700;margin-top:2px}
+.mini .pct{font-size:11px;color:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.bar-row{display:grid;grid-template-columns:1fr 54px;gap:10px;align-items:center;font-size:12.5px}
+.bar-track{height:9px;background:#eef2f7;border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;background:var(--blue);border-radius:6px}
+.bar-fill.gray{background:#b7c3d2}
+.bar-lbl{display:flex;justify-content:space-between;gap:10px;margin-bottom:3px}
+.bar-lbl b{font-weight:600}
+.note{font-size:12px;color:var(--muted);line-height:1.6}
+.note b{color:var(--title)}
+.dest-list{display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+.dest-item{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding-bottom:5px}
+.dest-item:last-child{border:none}
+@media (max-width:1000px){.grid-kpi{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.row3{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:620px){.grid-kpi{grid-template-columns:1fr}.row3{grid-template-columns:1fr}table{font-size:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb">CSC / <b>Inteligência Operacional</b></div>
+  <div class="head">
+    <div>
+      <h1>Painel de Indicadores do CSC</h1>
+      <div class="sub">Atendimentos receptivos, performance por fila e por agente, e qualidade das transferências. Base: Matrix · canais de texto (exceto voz) · sem automáticos · indicadores de tempo e NS na janela 08:00–23:59.</div>
+    </div>
+    <div id="srcBadge" class="badge"><span class="dot"></span><span id="srcTxt">Carregando fonte de dados…</span></div>
+  </div>
+
+  <div class="grid-kpi" id="kpis"></div>
+
+  <div class="two">
+    <div class="card"><h2>Nível de Serviço diário <span>% em até 20s · meta 95%</span></h2><div class="chart"><canvas id="chNS"></canvas></div></div>
+    <div class="card"><h2>Tempo Médio de Espera diário <span>meta 00:02:30</span></h2><div class="chart"><canvas id="chTME"></canvas></div></div>
+  </div>
+
+  <div class="card sec">
+    <h2>Resultado por fila <span>janela 08:00–23:59 · metas do grupo</span></h2>
+    <table id="tblFila"><thead><tr>
+      <th>Fila</th><th class="num">Atend.</th><th class="num">NS 20s</th><th class="num">TME</th>
+      <th class="num">TMA aj.</th><th class="num">TMIA</th><th class="num">Meta NS</th><th>Situação</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="card sec">
+    <h2>Ranking de agentes <span>clique no cabeçalho para ordenar</span></h2>
+    <table id="tblAg"><thead><tr>
+      <th class="sortable" data-k="name">Agente</th><th class="num sortable" data-k="atend">Atend.</th>
+      <th class="num sortable" data-k="ns">NS 20s</th><th class="num sortable" data-k="tme">TME</th>
+      <th class="num sortable" data-k="tma">TMA aj.</th><th class="num sortable" data-k="tmia">TMIA</th>
+      <th class="num sortable" data-k="transf">Transf.</th><th class="num sortable" data-k="pct_transf">% transf.</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="card sec">
+    <h2>Transferências <span>eventos no período · exclui origem Admin</span></h2>
+    <div class="row3" id="trCards"></div>
+    <div class="two" style="margin-bottom:0">
+      <div>
+        <h2 style="font-size:13px">Motivo registrado (IDs do protocolo)</h2>
+        <div class="bars" id="motivos"></div>
+      </div>
+      <div>
+        <h2 style="font-size:13px">Principais destinos</h2>
+        <div class="dest-list" id="destinos"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card note">
+    <b>Regras de cálculo.</b> Tempos e NS consideram apenas entradas entre 08:00 e 23:59 (a madrugada não penaliza o setor). NS = primeira resposta em até 20s ÷ atendimentos da janela. TMA ajustado = TA ÷ atendimentos ÷ 6. Metas: CSC TMA 00:05:59 · NS 95% · TME 00:02:30 · TMIA 00:01:30; fila QUALIDADE – CONTRATOS ATÉ 30 DIAS segue a meta CEI (TMA 00:07:00). Filas 2 e 97 são compartilhadas com outros setores. Transferências: 818 eventos (um atendimento pode transferir mais de uma vez).<br>
+    <b>Fonte.</b> Matrix &gt; Atendimentos &gt; Relatórios Estatístico e Analítico de Transferências, período 01/10/2026 a 30/10/2026.
+  </div>
+</div>
+
+<script>
+const DATA = {"ag": {"Adriel": {"q": 196, "ns": 82.1, "tme": 152, "tma": 358, "tmia": 94, "atend": 202, "transf": 41, "pct_transf": 20.3}, "Blenda": {"q": 281, "ns": 82.6, "tme": 291, "tma": 559, "tmia": 225, "atend": 318, "transf": 104, "pct_transf": 32.7}, "Bruna": {"q": 29, "ns": 75.9, "tme": 278, "tma": 483, "tmia": 95, "atend": 29, "transf": 4, "pct_transf": 13.8}, "Camily": {"q": 141, "ns": 65.2, "tme": 265, "tma": 283, "tmia": 59, "atend": 155, "transf": 61, "pct_transf": 39.4}, "Jhenifer Nunes": {"q": 176, "ns": 91.5, "tme": 245, "tma": 469, "tmia": 167, "atend": 192, "transf": 63, "pct_transf": 32.8}, "José": {"q": 191, "ns": 71.7, "tme": 325, "tma": 359, "tmia": 96, "atend": 220, "transf": 57, "pct_transf": 25.9}, "Julia": {"q": 197, "ns": 98.0, "tme": 7, "tma": 418, "tmia": 107, "atend": 197, "transf": 27, "pct_transf": 13.7}, "Kawane": {"q": 202, "ns": 74.3, "tme": 371, "tma": 399, "tmia": 107, "atend": 218, "transf": 58, "pct_transf": 26.6}, "Kayke": {"q": 166, "ns": 84.9, "tme": 133, "tma": 335, "tmia": 94, "atend": 167, "transf": 39, "pct_transf": 23.4}, "Lucas": {"q": 286, "ns": 96.2, "tme": 68, "tma": 269, "tmia": 79, "atend": 287, "transf": 47, "pct_transf": 16.4}, "Lukas": {"q": 386, "ns": 88.6, "tme": 148, "tma": 377, "tmia": 137, "atend": 410, "transf": 83, "pct_transf": 20.2}, "Marcus Adriano": {"q": 181, "ns": 98.9, "tme": 22, "tma": 269, "tmia": 84, "atend": 181, "transf": 23, "pct_transf": 12.7}, "Maycon": {"q": 69, "ns": 82.6, "tme": 142, "tma": 373, "tmia": 79, "atend": 84, "transf": 17, "pct_transf": 20.2}, "Nathan": {"q": 411, "ns": 86.6, "tme": 155, "tma": 338, "tmia": 142, "atend": 427, "transf": 101, "pct_transf": 23.7}, "Ruiellen": {"q": 92, "ns": 65.2, "tme": 701, "tma": 379, "tmia": 130, "atend": 97, "transf": 18, "pct_transf": 18.6}, "Sergio": {"q": 198, "ns": 99.5, "tme": 426, "tma": 224, "tmia": 75, "atend": 198, "transf": 19, "pct_transf": 9.6}, "Tifany": {"q": 222, "ns": 98.6, "tme": 10, "tma": 247, "tmia": 83, "atend": 222, "transf": 15, "pct_transf": 6.8}}, "dia": [{"d": "01/10/2026", "q": 214, "ns": 60.3, "tme": 662, "tma": 472, "tmia": 130}, {"d": "02/10/2026", "q": 123, "ns": 87.0, "tme": 113, "tma": 348, "tmia": 126}, {"d": "03/10/2026", "q": 123, "ns": 67.5, "tme": 568, "tma": 337, "tmia": 101}, {"d": "04/10/2026", "q": 43, "ns": 90.7, "tme": 31, "tma": 364, "tmia": 102}, {"d": "05/10/2026", "q": 172, "ns": 89.5, "tme": 123, "tma": 334, "tmia": 122}, {"d": "06/10/2026", "q": 115, "ns": 98.3, "tme": 308, "tma": 305, "tmia": 98}, {"d": "07/10/2026", "q": 152, "ns": 80.9, "tme": 229, "tma": 405, "tmia": 139}, {"d": "08/10/2026", "q": 119, "ns": 100.0, "tme": 1, "tma": 300, "tmia": 79}, {"d": "09/10/2026", "q": 105, "ns": 97.1, "tme": 15, "tma": 381, "tmia": 127}, {"d": "10/10/2026", "q": 89, "ns": 98.9, "tme": 946, "tma": 265, "tmia": 88}, {"d": "11/10/2026", "q": 37, "ns": 91.9, "tme": 197, "tma": 354, "tmia": 131}, {"d": "12/10/2026", "q": 67, "ns": 98.5, "tme": 48, "tma": 252, "tmia": 82}, {"d": "13/10/2026", "q": 127, "ns": 99.2, "tme": 5, "tma": 408, "tmia": 114}, {"d": "14/10/2026", "q": 79, "ns": 94.9, "tme": 22, "tma": 335, "tmia": 80}, {"d": "15/10/2026", "q": 209, "ns": 70.3, "tme": 166, "tma": 348, "tmia": 138}, {"d": "16/10/2026", "q": 100, "ns": 89.0, "tme": 33, "tma": 329, "tmia": 93}, {"d": "17/10/2026", "q": 77, "ns": 100.0, "tme": 2, "tma": 421, "tmia": 133}, {"d": "18/10/2026", "q": 53, "ns": 98.1, "tme": 547, "tma": 322, "tmia": 95}, {"d": "19/10/2026", "q": 87, "ns": 93.1, "tme": 116, "tma": 329, "tmia": 108}, {"d": "20/10/2026", "q": 181, "ns": 65.7, "tme": 371, "tma": 438, "tmia": 229}, {"d": "21/10/2026", "q": 216, "ns": 68.5, "tme": 357, "tma": 368, "tmia": 102}, {"d": "22/10/2026", "q": 137, "ns": 99.3, "tme": 5, "tma": 349, "tmia": 97}, {"d": "23/10/2026", "q": 83, "ns": 100.0, "tme": 2, "tma": 294, "tmia": 103}, {"d": "24/10/2026", "q": 85, "ns": 100.0, "tme": 2, "tma": 368, "tmia": 86}, {"d": "25/10/2026", "q": 73, "ns": 90.4, "tme": 137, "tma": 318, "tmia": 131}, {"d": "26/10/2026", "q": 119, "ns": 99.2, "tme": 30, "tma": 359, "tmia": 116}, {"d": "27/10/2026", "q": 122, "ns": 100.0, "tme": 2, "tma": 317, "tmia": 110}, {"d": "28/10/2026", "q": 131, "ns": 82.4, "tme": 91, "tma": 342, "tmia": 95}, {"d": "29/10/2026", "q": 90, "ns": 98.9, "tme": 5, "tma": 402, "tmia": 127}, {"d": "30/10/2026", "q": 96, "ns": 100.0, "tme": 2, "tma": 277, "tmia": 100}], "fila": [{"f": "SUPORTE - GERAL", "q": 2005, "ns": 85.6, "tme": 207, "tma": 376, "tmia": 120}, {"f": "ARROBA - PREFERENCIAL", "q": 571, "ns": 87.6, "tme": 212, "tma": 347, "tmia": 119}, {"f": "CSC - ATUALIZAÇÃO", "q": 345, "ns": 93.9, "tme": 57, "tma": 315, "tmia": 105}, {"f": "QUALIDADE - ATÉ 30 DIAS", "q": 212, "ns": 84.4, "tme": 223, "tma": 362, "tmia": 130}, {"f": "FINANCEIRO - NÍVEL 1", "q": 169, "ns": 81.7, "tme": 331, "tma": 264, "tmia": 87}, {"f": "COMERCIAL - GERAL", "q": 116, "ns": 94.8, "tme": 51, "tma": 318, "tmia": 118}, {"f": "SUPORTE - OUTROS", "q": 5, "ns": 100.0, "tme": 2, "tma": 313, "tmia": 156}, {"f": "FIN. DESBLOQ. CONFIANÇA", "q": 1, "ns": 100.0, "tme": 2, "tma": 220, "tmia": 32}], "tot": {"q": 3424, "ns": 86.9, "tme": 194, "tma": 356, "tmia": 117}, "tr": {"total": 818, "inter": 527, "intra": 291, "agente": 31, "sem_id": 257}, "motivos": [{"id": 5, "motivo": "Demanda que depende de setor específico", "qtd": 267}, {"id": 0, "motivo": "Sem ID registrado", "qtd": 257}, {"id": 1, "motivo": "Pausa: lanche ou almoço", "qtd": 159}, {"id": 4, "motivo": "Encerramento de turno", "qtd": 131}, {"id": 2, "motivo": "Treinamento, reunião ou tarefa administrativa", "qtd": 1}, {"id": 6, "motivo": "Cliente veio pelo fluxo incorreto", "qtd": 1}, {"id": 8, "motivo": "Cliente deseja falar com agente específico", "qtd": 1}, {"id": 99, "motivo": "Fora do padrão", "qtd": 1}], "destinos": [{"f": "SUPORTE - GERAL", "q": 404}, {"f": "FINANCEIRO - NIVEL 2", "q": 175}, {"f": "FINANCEIRO - REVERSÃO DE CANCELAMENTO", "q": 53}, {"f": "VENDAS", "q": 40}, {"f": "FINANCEIRO - COBRANÇA", "q": 37}, {"f": "COMERCIAL - NIVEL 2", "q": 31}, {"f": "FINANCEIRO - RENOVAÇÃO", "q": 20}, {"f": "GARANTIA DA EXPERIÊNCIA - GERAL", "q": 18}, {"f": "FINANCEIRO - TROCA DE PLANO", "q": 13}, {"f": "FINANCEIRO - NIVEL 1", "q": 9}, {"f": "CSC - ATUALIZAÇÃO DE DADOS", "q": 5}, {"f": "COMERCIAL - GERAL", "q": 4}], "periodo": {"inicio": "01/10/2026", "fim": "30/10/2026", "dias": 30}};
+const SB = { url: "eedigjsmsecoublejdkq", key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlZGlnanNtc2Vjb3VibGVqZGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyNTM4NDksImV4cCI6MjEwMjgyOTg0OX0.DGG0B2Sul1qsDwgvfjZ0_c5UrroBN8m753a0pukuD0A" };
+const T = { dia:"csc_kpi_dia", ag:"csc_kpi_agente", fila:"csc_kpi_fila", mot:"csc_kpi_motivo", resumo:"csc_kpi_resumo" };
+
+function fmt(s){ if(s===null||s===undefined||isNaN(s)) return "-"; s=Math.round(s); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60; return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(x).padStart(2,"0"); }
+function pct(v){ return (v===null||v===undefined||isNaN(v)) ? "-" : v.toFixed(1).replace(".",",")+"%"; }
+function num(v){ return (v||0).toLocaleString("pt-BR"); }
+const META={ns:95,tme:150,tma:359,tmia:90};
+
+function setBadge(live,extra){
+  const b=document.getElementById("srcBadge"), t=document.getElementById("srcTxt");
+  if(live){ b.classList.add("live"); t.textContent="Supabase · dados ao vivo"; }
+  else { b.classList.remove("live"); t.textContent="Snapshot "+extra+" · Supabase sem tabelas de KPI"; }
+}
+
+function renderKpis(d){
+  const tot=d.tot, tr=d.tr;
+  const cards=[
+    {l:"Atendimentos",v:num(d.total_atend||0),m:"janela "+num(tot.q),s:"neutral",i:"Base do período"},
+    {l:"Nível de Serviço",v:pct(tot.ns),m:"meta 95%",ok:tot.ns>=95,d:tot.ns-95},
+    {l:"TME",v:fmt(tot.tme),m:"meta 00:02:30",ok:tot.tme<=150,d:0},
+    {l:"TMA ajustado",v:fmt(tot.tma),m:"meta 00:05:59",ok:tot.tma<=359,d:0},
+    {l:"TMIA",v:fmt(tot.tmia),m:"meta 00:01:30",ok:tot.tmia<=90,d:0},
+    {l:"Transferidos",v:pct(tr.total/(d.total_atend||1)*100),m:num(tr.total)+" eventos",ok:null,d:0}
+  ];
+  document.getElementById("kpis").innerHTML = cards.map(c=>{
+    let tag = c.ok===null ? '<span class="tag neutral">sem meta</span>'
+      : (c.ok ? '<span class="tag ok">dentro</span>' : '<span class="tag bad">fora</span>');
+    let diff = "";
+    if(c.l==="Nível de Serviço" && c.ok===false) diff=(c.d).toFixed(1).replace(".",",")+" p.p.";
+    return '<div class="card kpi"><div class="lbl">'+c.l+'</div><div class="val">'+c.v+'</div>'+
+      '<div class="foot"><span>'+c.m+(diff?" · "+diff:"")+'</span>'+tag+'</div></div>';
+  }).join("");
+}
+
+let charts={};
+function renderCharts(d){
+  const labels=d.dia.map(x=>x.d.slice(0,5));
+  const ns=d.dia.map(x=>x.ns), tme=d.dia.map(x=>x.tme);
+  if(charts.ns) charts.ns.destroy(); if(charts.tme) charts.tme.destroy();
+  const gridC="rgba(26,43,77,.07)", tickC="#6c757d";
+  charts.ns=new Chart(document.getElementById("chNS"),{
+    type:"line",
+    data:{labels,datasets:[
+      {label:"NS %",data:ns,borderColor:"#0d6efd",backgroundColor:"rgba(13,110,253,.10)",fill:true,tension:.3,pointRadius:2,pointBackgroundColor:"#0d6efd",borderWidth:2},
+      {label:"Meta 95%",data:labels.map(()=>95),borderColor:"#fd7e14",borderDash:[5,4],pointRadius:0,borderWidth:1.5,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12,font:{size:11},color:tickC}}},
+      scales:{y:{min:40,max:100,grid:{color:gridC},ticks:{color:tickC,callback:v=>v+"%"}},x:{grid:{display:false},ticks:{color:tickC,font:{size:10},maxRotation:0,autoSkip:true}}}}
+  });
+  charts.tme=new Chart(document.getElementById("chTME"),{
+    type:"line",
+    data:{labels,datasets:[
+      {label:"TME",data:tme,borderColor:"#6f42c1",backgroundColor:"rgba(111,66,193,.10)",fill:true,tension:.3,pointRadius:2,pointBackgroundColor:"#6f42c1",borderWidth:2},
+      {label:"Meta 00:02:30",data:labels.map(()=>150),borderColor:"#fd7e14",borderDash:[5,4],pointRadius:0,borderWidth:1.5,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12,font:{size:11},color:tickC}},tooltip:{callbacks:{label:c=>c.dataset.label+": "+fmt(c.parsed.y)}}},
+      scales:{y:{grid:{color:gridC},ticks:{color:tickC,callback:v=>fmt(v)}},x:{grid:{display:false},ticks:{color:tickC,font:{size:10},maxRotation:0,autoSkip:true}}}}
+  });
+}
+
+function renderFilas(d){
+  const tb=document.querySelector("#tblFila tbody");
+  tb.innerHTML=d.fila.map(f=>{
+    const metaNs = f.f.indexOf("QUALIDADE")>=0 ? 95 : 95;
+    const ok=f.ns>=metaNs;
+    return "<tr><td><b>"+f.f+"</b></td><td class='num'>"+num(f.q)+"</td><td class='num'>"+pct(f.ns)+
+      "</td><td class='num'>"+fmt(f.tme)+"</td><td class='num'>"+fmt(f.tma)+"</td><td class='num'>"+fmt(f.tmia)+
+      "</td><td class='num'>"+metaNs+"%</td><td>"+(ok?'<span class="tag ok">meta</span>':'<span class="tag bad">abaixo</span>')+"</td></tr>";
+  }).join("");
+}
+
+let agSort={k:"atend",dir:-1};
+function renderAgentes(d){
+  const rows=Object.keys(d.ag).map(k=>({name:k,...d.ag[k]}));
+  rows.sort((a,b)=>{ const A=a[agSort.k],B=b[agSort.k]; if(typeof A==="string") return A.localeCompare(B)*agSort.dir; return (A-B)*agSort.dir; });
+  document.querySelector("#tblAg tbody").innerHTML=rows.map(r=>{
+    const ok=r.ns>=95;
+    return "<tr><td><b>"+r.name+"</b></td><td class='num'>"+num(r.atend)+"</td><td class='num'><span class='tag "+(ok?"ok":"bad")+"'>"+pct(r.ns)+"</span></td>"+
+      "<td class='num'>"+fmt(r.tme)+"</td><td class='num'>"+fmt(r.tma)+"</td><td class='num'>"+fmt(r.tmia)+
+      "</td><td class='num'>"+num(r.transf)+"</td><td class='num'>"+pct(r.pct_transf)+"</td></tr>";
+  }).join("");
+}
+
+function renderTransf(d){
+  const t=d.tr, max=Math.max(t.inter,t.intra,t.agente,t.sem_id);
+  const cards=[
+    {l:"para outra fila",v:t.inter,p:null},
+    {l:"para a mesma fila",v:t.intra,p:null},
+    {l:"direto a um agente",v:t.agente,p:null},
+    {l:"sem ID",v:t.sem_id,p:null}
+  ];
+  document.getElementById("trCards").innerHTML=cards.map(c=>
+    "<div class='mini'><div class='lbl'>"+c.l+"</div><div class='val'>"+num(c.v)+"</div><div class='pct'>"+pct(c.v/t.total*100)+" dos "+num(t.total)+"</div></div>").join("");
+  const mMax=Math.max(...d.motivos.map(x=>x.qtd));
+  document.getElementById("motivos").innerHTML=d.motivos.map(m=>{
+    const label = m.id===0 ? "Sem ID registrado" : (m.id===99 ? "Fora do padrão" : "ID "+m.id+" · "+m.motivo);
+    return "<div><div class='bar-lbl'><b>"+label+"</b><span>"+num(m.qtd)+" · "+pct(m.qtd/t.total*100)+"</span></div>"+
+      "<div class='bar-track'><div class='bar-fill"+(m.id===0?" gray":"")+"' style='width:"+(m.qtd/mMax*100).toFixed(1)+"%'></div></div></div>";
+  }).join("");
+  document.getElementById("destinos").innerHTML=d.destinos.map(x=>
+    "<div class='dest-item'><span>"+x.f+"</span><b>"+num(x.q)+"</b></div>").join("");
+}
+
+function renderAll(d){
+  d.total_atend = d.total_atend || 3604;
+  renderKpis(d); renderCharts(d); renderFilas(d); renderAgentes(d); renderTransf(d);
+}
+
+async function sbLoad(){
+  const h={apikey:SB.key,Authorization:"Bearer "+SB.key};
+  const get=async(t,q)=>{ const r=await fetch(SB.url+"/rest/v1/"+t+"?select=*"+q,{headers:h}); if(!r.ok) throw new Error(t); return r.json(); };
+  const [dia,ag,fila,mot,res]=await Promise.all([
+    get(T.dia,"&order=data.asc"), get(T.ag,""), get(T.fila,""), get(T.mot,"&order=qtd.desc"), get(T.resumo,"")
+  ]);
+  if(!dia.length) throw new Error("vazio");
+  const D=JSON.parse(JSON.stringify(DATA));
+  D.dia=dia.map(r=>({d:r.data.split("-").reverse().join("/"),q:r.atendimentos,ns:+r.ns_pct,tme:+r.tme_seg,tma:+r.tma_seg,tmia:+r.tmia_seg}));
+  D.ag={}; ag.forEach(r=>D.ag[r.agente]={q:+r.q_janela,ns:+r.ns_pct,tme:+r.tme_seg,tma:+r.tma_seg,tmia:+r.tmia_seg,atend:+r.atendimentos,transf:+r.transf,pct_transf:+r.pct_transf});
+  D.fila=fila.map(r=>({f:r.fila,q:+r.q_janela,ns:+r.ns_pct,tme:+r.tme_seg,tma:+r.tma_seg,tmia:+r.tmia_seg}));
+  D.motivos=mot.map(r=>({id:r.id_motivo,motivo:r.motivo,qtd:+r.qtd}));
+  if(res.length){ const r=res[0]; D.tr={total:+r.total,inter:+r.inter,intra:+r.intra,agente:+r.agente,sem_id:+r.sem_id}; D.total_atend=+r.atendimentos; }
+  const qDia=D.dia.reduce((a,b)=>a+b.q,0);
+  D.tot={q:qDia,
+    ns:+(D.dia.reduce((a,b)=>a+b.ns*b.q,0)/qDia).toFixed(1),
+    tme:Math.round(D.dia.reduce((a,b)=>a+b.tme*b.q,0)/qDia),
+    tma:Math.round(D.dia.reduce((a,b)=>a+b.tma*b.q,0)/qDia),
+    tmia:Math.round(D.dia.reduce((a,b)=>a+b.tmia*b.q,0)/qDia)};
+  return D;
+}
+
+document.querySelectorAll("#tblAg th.sortable").forEach(th=>{
+  th.addEventListener("click",()=>{ const k=th.dataset.k; agSort.dir = (agSort.k===k)? -agSort.dir : -1; agSort.k=k; renderAgentes(window.__D); });
+});
+
+window.__D=DATA;
+DATA.total_atend=3604;
+setBadge(false,"01–30/10/2026");
+renderAll(DATA);
+sbLoad().then(d=>{ window.__D=d; setBadge(true); renderAll(d); }).catch(()=>{ /* mantém snapshot */ });
+</script>
+</body>
+</html>
