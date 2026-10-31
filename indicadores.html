@@ -763,8 +763,9 @@ function renderIndicadores(){
     const items=keys.map(function(k){
       const a=metVal(DP.tot,k), b=metVal(D.tot,k);
       const d=b-a; const good=METS[k].inv? d<0 : d>0;
-      return {n:METS[k].short, d:d, good:good, txt:(d>0?"+":"−")+(k==="ns"? Math.abs(d).toFixed(1).replace(".",",")+" p.p." : fmt(Math.abs(d)))};
-    }).concat([{n:"Volume", d:D.tot.q-DP.tot.q, good:D.tot.q>=DP.tot.q, txt:num(Math.abs(D.tot.q-DP.tot.q))}]);
+      const mag=(k==="ns"? Math.abs(d).toFixed(1).replace(".",",")+" p.p." : fmt(Math.abs(d)));
+      return {n:METS[k].short, d:d, good:good, txt:(good? "+"+mag : mag)};
+    }).concat([{n:"Volume", d:D.tot.q-DP.tot.q, good:D.tot.q>=DP.tot.q, txt:(D.tot.q>=DP.tot.q? "+":"")+num(Math.abs(D.tot.q-DP.tot.q))}]);
     const up=items.filter(function(i){return i.good && Math.abs(i.d)>0.001;});
     const dn=items.filter(function(i){return !i.good && Math.abs(i.d)>0.001;});
     mv.innerHTML='<div class="small muted" style="margin-bottom:4px;font-weight:700">MELHORARAM</div>'+
@@ -835,10 +836,15 @@ function renderDetalhe(){
   if(!DETALHE){ box.innerHTML=""; return; }
   const k=DETALHE, cfg=METS[k], t=D.tot, pt=DP.tot;
   const v=metVal(t,k), mv=cfg.meta(D), pv=pt.q? metVal(pt,k):null, ok=dentro(k,v,mv);
-  const filas=filasComMeta(D).map(function(f){ return {n:f.f, q:f.q, v:metVal(f,k)}; }).sort(function(a,b){return b.q-a.q;});
-  const ags=Object.keys(D.agents).map(function(n){ return {n:n, q:D.agents[n].q, v:metVal(D.agents[n],k)}; })
+  function metaFila(nome){
+    if(k==="tma") return nome.indexOf("QUALIDADE")>=0? META.tmaCEI : (D.cei? META.tmaCEI : META.tma);
+    return cfg.meta(D);
+  }
+  const filas=(D.filas||[]).map(function(f){ return {n:f.f, q:f.q, v:metVal(f,k), mv:metaFila(f.f)}; })
+    .sort(function(a,b){ return b.q-a.q; });
+  const ags=Object.keys(D.agents).map(function(n){ return {n:n, q:D.agents[n].q, v:metVal(D.agents[n],k), mv:mv}; })
     .filter(function(a){return a.q>0;}).sort(function(a,b){return b.q-a.q;}).slice(0,10);
-  function cel(vv){ const d=dentro(k,vv,mv); return "<td class='num'>"+fval(k,vv)+"</td><td>"+(d===null?'<span class="tag t-mut">—</span>':(d?'<span class="tag t-ok">meta</span>':'<span class="tag t-bad">fora</span>'))+"</td>"; }
+  function cel(vv,mvv){ const d=dentro(k,vv,mvv); return "<td class='num'>"+fval(k,vv)+"</td><td>"+(d===null?'<span class="tag t-mut">—</span>':(d?'<span class="tag t-ok">meta</span>':'<span class="tag t-bad">fora</span>'))+"</td>"; }
   box.innerHTML='<div class="detail"><div class="dh"><b>'+cfg.n+'</b><button class="link" onclick="DETALHE=null;renderDetalhe()">fechar detalhe</button></div>'+
     '<div class="dstats">'+
       '<div><div class="l">Resultado</div><div class="v">'+fval(k,v)+'</div></div>'+
@@ -847,10 +853,10 @@ function renderDetalhe(){
       '<div><div class="l">Situação</div><div class="v" style="font-size:13px;color:'+(ok===null?"var(--muted)":(ok?"var(--ok)":"var(--bad)"))+'">'+(ok===null?"sem meta":(ok?"dentro da meta":"fora da meta"))+'</div></div>'+
     '</div>'+
     '<div class="grid k2"><div><div class="small muted" style="font-weight:700;margin-bottom:6px">POR FILA</div><table><thead><tr><th>Fila</th><th class="num">Atend.</th><th class="num">'+cfg.short+'</th><th></th></tr></thead><tbody>'+
-      (filas.map(function(f){return "<tr><td>"+esc(f.n)+"</td><td class='num'>"+num(f.q)+"</td>"+cel(f.v)+"</tr>";}).join("")||'<tr><td colspan="4" class="missing">sem filas</td></tr>')+
+      (filas.map(function(f){return "<tr><td>"+esc(f.n)+"</td><td class='num'>"+num(f.q)+"</td>"+cel(f.v,f.mv)+"</tr>";}).join("")||'<tr><td colspan="4" class="missing">sem filas</td></tr>')+
     '</tbody></table></div>'+
     '<div><div class="small muted" style="font-weight:700;margin-bottom:6px">POR COLABORADOR (10 MAIORES VOLUMES)</div><table><thead><tr><th>Colaborador</th><th class="num">Atend.</th><th class="num">'+cfg.short+'</th><th></th></tr></thead><tbody>'+
-      (ags.map(function(a){return "<tr><td>"+esc(a.n)+"</td><td class='num'>"+num(a.q)+"</td>"+cel(a.v)+"</tr>";}).join("")||'<tr><td colspan="4" class="missing">sem colaboradores</td></tr>')+
+      (ags.map(function(a){return "<tr><td>"+esc(a.n)+"</td><td class='num'>"+num(a.q)+"</td>"+cel(a.v,a.mv)+"</tr>";}).join("")||'<tr><td colspan="4" class="missing">sem colaboradores</td></tr>')+
     '</tbody></table></div></div></div>';
 }
 
