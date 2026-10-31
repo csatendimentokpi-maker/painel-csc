@@ -155,7 +155,7 @@ th.sortable:hover{color:var(--azul)}
     <div class="two" style="margin-top:12px">
       <div class="card">
         <h3>Ranking de indicadores mais críticos <span>índice de prioridade gerencial 0–100</span></h3>
-        <div class="tbl-wrap"><table id="tblCrit"><thead><tr><th>#</th><th>Indicador</th><th class="num">Resultado</th><th class="num">Meta</th><th class="num">Distância</th><th class="num">Dias fora</th><th class="num">Índice</th><th>Situação</th></tr></thead><tbody></tbody></table></div>
+        <div class="tbl-wrap"><table id="tblCrit"><thead><tr><th>#</th><th>Indicador</th><th class="num">Resultado</th><th class="num">Meta</th><th class="num">Diferença vs meta</th><th class="num">Dias fora</th><th class="num">Índice</th><th>Situação</th></tr></thead><tbody></tbody></table></div>
         <div class="note" style="margin-top:8px">Índice = frequência de descumprimento 30% + distância normalizada da meta 25% + impacto no volume 25% + tendência 20%. Ordena atenção gerencial, não serve para julgamento individual.</div>
       </div>
       <div class="card">
@@ -418,12 +418,13 @@ function criticos(D0,DP0){
 
 function renderCriticos(list){
   document.querySelector("#tblCrit tbody").innerHTML=list.map(function(x,i){
-    const dist = x.inv? x.val-x.meta : x.meta-x.val;
+    const dif = x.val-x.meta;
     const cls = x.idx>=80?"t-bad":(x.idx>=60?"t-warn":(x.idx>=40?"t-mut":"t-ok"));
     const rot = x.idx>=80?"crítico":(x.idx>=60?"alto":(x.idx>=40?"moderado":"acompanhar"));
     const valTxt = x.k==="ns"? pct(x.val) : fmt(x.val);
     const metaTxt = x.k==="ns"? x.meta+"%" : fmt(x.meta);
-    const distTxt = x.k==="ns"? (dist>0?"-":"+")+Math.abs(dist).toFixed(1).replace(".",",")+" p.p." : (dist>0?"-":"+")+fmt(Math.abs(dist));
+    const dir = Math.abs(dif)<0.5? "na meta" : (dif>0? "acima" : "abaixo");
+    const distTxt = x.k==="ns"? (dif>0?"+":"−")+Math.abs(dif).toFixed(1).replace(".",",")+" p.p. "+dir : (dif>0?"+":"−")+fmt(Math.abs(dif))+" "+dir;
     return "<tr><td>"+(i+1)+"</td><td><b>"+x.nome+"</b></td><td class='num'>"+valTxt+"</td><td class='num'>"+metaTxt+"</td><td class='num'>"+distTxt+"</td><td class='num'>"+x.fora+"/"+x.eleg+"</td><td class='num'><b>"+x.idx+"</b></td><td><span class='tag "+cls+"'>"+rot+"</span></td></tr>";
   }).join("");
 }
