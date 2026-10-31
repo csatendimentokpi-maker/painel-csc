@@ -30,12 +30,12 @@ h1{font-size:17px;margin:0;letter-spacing:-.01em;color:var(--azul-esc);font-weig
 .fld span{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 input[type=date],select{font-family:inherit;font-size:12.5px;color:var(--text);background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 9px}
 input[type=date]{min-width:138px}
-select{min-width:120px}
+select{min-width:112px}
 input[type=date]:focus,select:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 3px rgba(41,98,172,.10)}
 .btn{font-family:inherit;font-size:12.5px;font-weight:700;padding:8px 18px;border-radius:8px;border:1px solid var(--azul);background:var(--azul);color:#fff;cursor:pointer}
 .btn:hover{background:var(--azul-esc);border-color:var(--azul-esc)}
 .dims{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
-.dims select{color:#475467;font-size:12px;padding:6px 8px;background:#fbfcfe}
+.dims select{color:#475467;font-size:11.5px;padding:6px 7px;background:#fbfcfe;max-width:170px}
 .escopo{font-size:11.5px;color:var(--muted);padding:8px 0 0;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
 .escopo b{color:#475467;font-weight:700}
 /* abas */
@@ -700,7 +700,7 @@ function renderVisao(){
       return '<div class="aitem '+cls+'"><span class="bar2"></span><div class="body"><div class="t">'+esc(a.tit)+' <span class="sev '+sev+'">'+a.g+'</span></div><div class="e">'+a.ev+'</div></div><button class="link" onclick="irAlerta('+i+')">Detalhes</button></div>';
     }).join("") : '<div class="missing">Nenhum desvio relevante no período.</div>';
   const mt=metasAtingidas(D);
-  document.getElementById("resumoMini").innerHTML="<b>"+mt.ok+" de "+mt.tot+"</b> metas avaliadas cumpridas no período · prioridade atual: <b>"+criticos(D,DP)[0].nome.toLowerCase()+"</b> · "+al.length+" alerta(s) ativo(s). <span class='small'>Clique em um indicador para ver histórico, filas e agentes.</span>";
+  document.getElementById("resumoMini").innerHTML="<b>"+mt.ok+" de "+mt.tot+"</b> metas avaliadas cumpridas no período · prioridade atual: <b>"+criticos(D,DP)[0].nome+"</b> · "+al.length+" alerta(s) ativo(s). <span class='small'>Clique em um indicador para ver histórico, filas e agentes.</span>";
 }
 function alertasOrdenados(){
   const rank={"crítico":0,"alto":1,"moderado":2};
