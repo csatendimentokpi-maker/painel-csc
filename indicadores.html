@@ -112,7 +112,39 @@ th.sortable:hover{color:var(--azul)}
 .tag{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:999px;white-space:nowrap}
 .t-ok{background:#e7f5ef;color:var(--ok)}.t-bad{background:#fdecea;color:var(--bad)}
 .t-warn{background:#fff6e6;color:#96650a}.t-mut{background:#eef2f7;color:#475467}
-.v-ok{color:var(--ok);font-weight:700}.v-warn{color:#b26b00;font-weight:700}.v-bad{color:var(--bad);font-weight:700}.v-mut{color:var(--muted)}
+.v-ok{color:var(--ok);font-weight:600}.v-warn{color:#a56800;font-weight:600}.v-bad{color:var(--bad);font-weight:600}.v-mut{color:var(--muted)}
+/* secoes recolhiveis */
+.sec{border:1px solid var(--line);border-radius:var(--r);background:#fff;margin-top:12px;overflow:hidden}
+.sec>summary{list-style:none;cursor:pointer;padding:12px 15px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--azul-esc)}
+.sec>summary::-webkit-details-marker{display:none}
+.sec>summary:before{content:"+";font-size:14px;color:var(--muted);font-weight:700;width:10px}
+.sec[open]>summary:before{content:"\2013"}
+.sec>summary small{font-weight:500;color:var(--muted);font-size:11.5px}
+.sec>summary:hover{background:#fbfcfe}
+.sec .sec-body{padding:0 14px 14px}
+.sec .sec-body>.card{border:0;padding:0;border-radius:0}
+.sec .sec-body>.grid{margin-top:12px}
+/* tabelas extensas com cabecalho e primeira coluna fixos */
+.stick{max-height:430px;overflow:auto}
+.stick table{width:100%;border-collapse:separate;border-spacing:0}
+.stick thead th{position:sticky;top:0;background:#fff;z-index:3;box-shadow:inset 0 -1px 0 var(--line)}
+.stick tbody td:first-child,.stick thead th:first-child{position:sticky;left:0;background:#fff;z-index:2;box-shadow:1px 0 0 var(--line)}
+/* barra proporcional da jornada */
+.compbar{display:flex;height:7px;border-radius:4px;overflow:hidden;background:var(--soft);min-width:84px}
+.compbar span{display:block;height:100%}
+.compbar .c1{background:#2962ac}.compbar .c2{background:#fdb92e}.compbar .c3{background:#d9534f}
+.legendbar{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:8px}
+.legendbar i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+/* alertas da aba IA sob demanda */
+.ialerta{border:1px solid var(--line);border-left:3px solid #c8d2df;border-radius:8px;margin-top:8px;background:#fff}
+.ialerta.crit{border-left-color:var(--bad)}
+.ialerta.alto{border-left-color:var(--amarelo)}
+.ialerta>summary{list-style:none;cursor:pointer;padding:9px 12px;display:flex;align-items:center;gap:8px;font-size:12.5px}
+.ialerta>summary::-webkit-details-marker{display:none}
+.ialerta>summary:after{content:"+";margin-left:auto;color:var(--muted);font-weight:700}
+.ialerta[open]>summary:after{content:"\2013"}
+.ialerta .ial-body{padding:0 12px 10px}
+.grpia>h3{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:14px 0 2px}
 .muted{color:var(--muted)}.small{font-size:11.5px}
 .note{font-size:11.5px;color:var(--muted);line-height:1.6}
 .missing{padding:12px;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font-size:12px;text-align:center}
@@ -273,7 +305,7 @@ th.sortable:hover{color:var(--azul)}
         <div><h2 style="font-size:12px;margin-bottom:8px">Principais destinos (todos)</h2><div id="destinos" class="note"></div></div>
       </div>
       <div class="head" style="margin-bottom:8px"><h2 style="font-size:12px">Por colaborador <small>clique na linha para abrir motivos e destinos</small></h2></div>
-      <div class="tw"><table id="tblTrAg"><thead><tr>
+      <div class="tw stick"><table id="tblTrAg"><thead><tr>
         <th>Colaborador</th><th class="num">Atend.</th><th class="num">Transf.</th><th class="num">% do volume</th>
         <th class="num">Outra fila</th><th class="num">Mesma fila</th><th class="num">Destino a agente*</th><th class="num">Sem motivo</th><th>Situação</th>
       </tr></thead><tbody></tbody></table></div>
@@ -299,7 +331,7 @@ th.sortable:hover{color:var(--azul)}
       <div class="chart"><canvas id="chPs"></canvas></div>
       <div class="note" id="psLegenda" style="margin-top:6px"></div>
 
-      <div class="tw psTbl"><table id="tblPs"><thead><tr>
+      <div class="tw psTbl stick"><table id="tblPs"><thead><tr>
         <th data-k="nome" onclick="psSetSort('nome')">Colaborador<span class="ar"></span></th>
         <th class="num" data-k="env" onclick="psSetSort('env')">Enviadas<span class="ar"></span></th>
         <th class="num" data-k="resp" onclick="psSetSort('resp')">Respondidas<span class="ar"></span></th>
@@ -314,13 +346,33 @@ th.sortable:hover{color:var(--azul)}
       </tr></thead><tbody></tbody></table></div>
       <div class="note" id="psNota" style="margin-top:10px"></div>
     </div>
+
+    <div class="card" style="margin-top:12px" id="cardProd">
+      <div class="head"><h2>Produção e Produtividade <small>volume, horas e produtividade por hora disponível</small></h2></div>
+      <div class="grid k3" id="prodCards" style="margin-bottom:14px"></div>
+      <div class="head" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+        <h2 style="font-size:12.5px">Atendimentos por <small id="prodEixoRot">colaborador</small></h2>
+        <div class="seg" id="segProd">
+          <button data-e="ag" class="on" onclick="setProdEixo('ag')">Colaboradores</button>
+          <button data-e="turno" onclick="setProdEixo('turno')">Turnos</button>
+          <button data-e="fila" onclick="setProdEixo('fila')">Filas</button>
+        </div>
+      </div>
+      <div class="chart"><canvas id="chProd"></canvas></div>
+      <div class="note" id="prodNota" style="margin-top:6px"></div>
+      <div class="grid k2" style="margin-top:14px">
+        <div><h2 style="font-size:12px;margin-bottom:8px">Ranking por volume de atendimentos</h2><div class="bars" id="rankVol"></div></div>
+        <div><h2 style="font-size:12px;margin-bottom:8px">Ranking por produtividade <small class="muted">atendimentos por hora disponível</small></h2><div class="bars" id="rankProd"></div></div>
+      </div>
+      <div style="margin-top:14px"><h2 style="font-size:12px;margin-bottom:8px">Variações relevantes de produção</h2><div id="prodMov"></div></div>
+    </div>
   </section>
 
   <section class="tab" id="tab-colaboradores">
     <div class="grid k3" id="rankings"></div>
     <div class="card" style="margin-top:12px">
       <div class="head"><h2>Todos os colaboradores <small>clique no cabeçalho para ordenar</small></h2></div>
-      <div class="tw"><table id="tblAg"><thead><tr>
+      <div class="tw stick"><table id="tblAg"><thead><tr>
         <th class="sortable" data-k="name">Colaborador</th><th class="sortable" data-k="turno">Turno</th>
         <th class="num sortable" data-k="q">Atend.</th><th class="num sortable" data-k="prod">Atend./h</th>
         <th class="num sortable" data-k="ns">NS 20s</th><th class="num sortable" data-k="tme">TME</th>
@@ -335,11 +387,11 @@ th.sortable:hover{color:var(--azul)}
     <div class="grid k4" id="jorCards"></div>
     <div class="card" style="margin-top:12px">
       <div class="head"><h2>Jornada por colaborador <small>escala, logs e pausas</small></h2></div>
-      <div class="tw"><table id="tblJor"><thead><tr>
+      <div class="tw stick"><table id="tblJor"><thead><tr>
         <th>Colaborador</th><th>Turno</th><th>Escala</th><th class="num">Dias com log</th><th class="num">Horas logadas</th>
-        <th class="num">Produtivas</th><th class="num">Improdutivas</th><th class="num">Excedente</th><th class="num">Aderência</th><th>Situação</th>
+        <th class="num">Produtivas</th><th class="num">Improdutivas</th><th class="num">Excedente</th><th>Composição</th><th class="num">Aderência</th><th>Situação</th>
       </tr></thead><tbody></tbody></table></div>
-      <div class="note" style="margin-top:10px">Aderência = (horas logadas − pausas improdutivas − encerramento) ÷ carga prevista pelos dias com log. Pausas produtivas contam como jornada. Faixas de log: acima de 8h atenção, 13h elevado, 16h crítico, 18h crítico máximo, sempre comparando com a carga do turno. A verificação de atividade efetiva nos estados Ativo WhatsApp e Ativo Telefonia não está disponível na base.</div>
+      <div class="note" style="margin-top:10px">Aderência = (horas logadas − pausas improdutivas − encerramento) ÷ carga prevista pelos dias com log. Pausas produtivas contam como jornada. Faixas de log: acima de 8h atenção, 13h elevado, 16h crítico, 18h crítico máximo, sempre comparando com a carga do turno. Na coluna Composição, a barra divide as horas registradas entre pausas produtivas, pausas improdutivas e excedente de pausa, na mesma proporção dos valores numéricos ao lado. A verificação de atividade efetiva nos estados Ativo WhatsApp e Ativo Telefonia não está disponível na base.</div>
     </div>
   </section>
 
@@ -911,6 +963,7 @@ function renderIndicadores(){
   }).join("") || '<tr><td colspan="9" class="missing">Sem turnos no período.</td></tr>';
   renderTransf();
   renderPesquisa();
+  renderProducao();
   renderDetalhe();
 }
 
@@ -1112,28 +1165,36 @@ function psLeitura(t){
     {n:"Excelente",v:exc,m:80,tipo:"min"},
     {n:"Bom",v:bom,m:15,tipo:"max"},
     {n:"Precisa melhorar",v:pm,m:5,tipo:"max"}
-  ].filter(function(x){ return x.v!==null; }).map(function(x){
-    return {n:x.n,v:x.v,m:x.m,tipo:x.tipo,gap: x.tipo==="min"? x.m-x.v : x.v-x.m};
-  }).sort(function(a,b){ return b.gap-a.gap; });
+  ].filter(function(x){ return x.v!==null && x.v!==undefined; }).map(function(x){
+    const fora = x.tipo==="min" ? (x.v < x.m) : (x.v > x.m);
+    const dist = Math.abs(x.v - x.m);
+    return {n:x.n,v:x.v,m:x.m,tipo:x.tipo,fora:fora,dist:dist,peso: fora? dist : 0};
+  });
   const box=document.getElementById("psLeitura");
   if(!lst.length){ box.innerHTML=""; return; }
-  const a=lst[0];
   const frase=function(x){
-    const pp=Math.abs(x.gap).toFixed(1).replace(".",",")+" p.p.";
-    if(x.tipo==="min") return "<b>"+x.n+" "+pct(x.v)+"</b> contra meta de "+x.m+"%: "+pp+" abaixo.";
-    return "<b>"+x.n+" "+pct(x.v)+"</b> contra teto de "+x.m+"%: "+pp+" acima.";
-  };
-  let obs1=frase(a), obs2="";
-  if(lst[1]){
-    obs2=frase(lst[1]);
-    if(lst[1].n==="Excelente"){
-      const cand=Object.keys(D.pesq.por).filter(function(n){ return D.pesq.por[n].resp>=20; })
-        .map(function(n){ return {n:n,v:psQ(D.pesq.por[n].x,D.pesq.por[n].resp)}; })
-        .sort(function(x,y){ return x.v-y.v; });
-      if(cand.length) obs2+=" Menor taxa: "+cand[0].n+" ("+pct(cand[0].v)+").";
+    const pp=x.dist.toFixed(1).replace(".",",")+" p.p.";
+    if(!x.fora){
+      if(x.tipo==="min") return "<b>"+x.n+" "+pct(x.v)+"</b> dentro da meta de "+x.m+"% ("+pp+" acima do piso).";
+      return "<b>"+x.n+" "+pct(x.v)+"</b> dentro da meta de "+x.m+"% ("+pp+" abaixo do teto).";
     }
+    if(x.tipo==="min") return "<b>"+x.n+" "+pct(x.v)+"</b> contra piso de "+x.m+"%: "+pp+" abaixo da meta.";
+    return "<b>"+x.n+" "+pct(x.v)+"</b> contra teto de "+x.m+"%: "+pp+" acima da meta.";
+  };
+  const fora=lst.filter(function(x){ return x.fora; }).sort(function(a,b){ return b.dist-a.dist; });
+  const dentro=lst.filter(function(x){ return !x.fora; }).sort(function(a,b){ return a.dist-b.dist; });
+  const obs=[];
+  fora.slice(0,2).forEach(function(x){ obs.push(frase(x)); });
+  if(obs.length===0 && dentro.length) obs.push(frase(dentro[0]));
+  let extra="";
+  if(obs.length && fora.length && fora[0].n==="Excelente"){
+    const cand=Object.keys(D.pesq.por).filter(function(n){ return D.pesq.por[n].resp>=20; })
+      .map(function(n){ const o=D.pesq.por[n]; return {n:n,v:psQ(o.x,o.resp)}; })
+      .filter(function(x){ return x.v!==null; }).sort(function(a,b){ return a.v-b.v; });
+    if(cand.length) extra=" Menor taxa: "+cand[0].n+" ("+pct(cand[0].v)+").";
   }
-  box.innerHTML="<div>"+obs1+"</div>"+(obs2? "<div>"+obs2+"</div>" : "");
+  if(extra && obs.length) obs[obs.length-1]+=extra;
+  box.innerHTML=obs.slice(0,2).map(function(o){ return "<div>"+o+"</div>"; }).join("");
 }
 function renderPesquisa(){
   const P=D.pesq||{por:{},tot:{env:0,resp:0,x:0,b:0,p:0}}, t=P.tot;
@@ -1277,8 +1338,101 @@ function renderJornada(){
     else {cls="t-warn";rot="acima da carga";}
     return "<tr><td><b>"+esc(a.name)+"</b></td><td class='muted'>"+esc(a.turno||"—")+"</td><td class='muted'>"+(a.esc&&a.esc.entrada? a.esc.entrada+"–"+a.esc.saida : "—")+
       "</td><td class='num'>"+a.diasLog+"</td><td class='num'>"+h1f(a.log/3600)+" h</td><td class='num'>"+h1f(a.pa/3600)+" h</td><td class='num'>"+h1f(a.pb/3600)+
-      " h</td><td class='num'>"+h1f(a.exc/3600)+" h</td><td class='num'>"+(ader===null?"—":pct(ader,0))+"</td><td><span class='tag "+cls+"'>"+rot+"</span></td></tr>";
+      " h</td><td class='num'>"+h1f(a.exc/3600)+" h</td>"+
+      (function(){ const tot=a.pa+a.pb+a.exc; if(!tot) return "<td class='muted'>—</td>";
+        const w=function(v){ return (v/tot*100).toFixed(1); };
+        return "<td><div class='compbar'><span class='c1' style='width:"+w(a.pa)+"%'></span><span class='c2' style='width:"+w(a.pb)+"%'></span><span class='c3' style='width:"+w(a.exc)+"%'></span></div></td>"; })()+
+      "<td class='num'>"+(ader===null?"—":pct(ader,0))+"</td><td><span class='tag "+cls+"'>"+rot+"</span></td></tr>";
   }).join("") || '<tr><td colspan="10" class="missing">Sem jornada no período.</td></tr>';
+}
+
+
+/* ---------- produção e produtividade ---------- */
+let PROD_EIXO="ag";
+function setProdEixo(e){
+  PROD_EIXO=e;
+  document.querySelectorAll("#segProd button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-e")===e); });
+  chartProd();
+  const rot=document.getElementById("prodEixoRot"); if(rot) rot.textContent = e==="ag"? "colaborador" : (e==="turno"? "turno" : "fila");
+}
+function horasP(d){
+  const ags=agList(d); let log=0,pa=0,pb=0,pc=0;
+  ags.forEach(function(a){ log+=a.log; pa+=a.pa; pb+=a.pb; pc+=a.pc; });
+  const prod=log-pb-pc;
+  return {log:log,prod:prod,disp:prod-pa};
+}
+function renderProducao(){
+  const h=horasP(D), hp=horasP(DP);
+  const horasProd=h.prod/3600, horasDisp=h.disp/3600, horasDispP=hp.disp/3600;
+  const porHora=horasDisp>0? D.tot.q/horasDisp : null;
+  const porHoraP=horasDispP>0? DP.tot.q/horasDispP : null;
+  const vr=function(v,p,unit){
+    if(v===null||v===undefined) return '<span class="muted">indisponível</span>';
+    if(p===null||p===undefined||!isFinite(p)||p===0) return '<span class="muted">sem base anterior</span>';
+    const d=(v-p)/p*100, ok=d>=0;
+    return '<span class="'+(Math.abs(d)<0.05?"muted":(ok?"v-ok":"v-bad"))+'">'+(ok?"+":"")+h1f(d)+'%</span> <span class="muted">vs anterior</span>';
+  };
+  const cards=[
+    {l:"Atendimentos",v:num(D.tot.q),p:vr(D.tot.q,DP.tot.q||null)},
+    {l:"Atendimentos por hora disponível",v:(porHora===null?"indisponível":h1f(porHora)),p:(porHora===null?'<span class="muted">sem base de horas</span>':vr(porHora,porHoraP))},
+    {l:"Horas produtivas registradas",v:(h.prod? h1f(horasProd)+" h":"indisponível"),p:(h.prod? '<span class="muted">'+h1f(horasDisp)+' h disponíveis para atendimento</span>':'<span class="muted">base de jornada ausente no período</span>')}
+  ];
+  document.getElementById("prodCards").innerHTML=cards.map(function(c){
+    return '<div class="mini"><div class="l">'+c.l+'</div><div class="v">'+c.v+'</div><div class="p">'+c.p+'</div></div>';
+  }).join("");
+  const ags=agList(D).filter(function(a){ return a.q>0; });
+  const vol=ags.slice().sort(function(a,b){ return b.q-a.q; }).slice(0,8);
+  document.getElementById("rankVol").innerHTML=vol.length? barsHtml(vol.map(function(a){return {n:a.name,v:a.q};})) : '<div class="missing">Sem produção no período.</div>';
+  const pr=ags.filter(function(a){ const hp2=(a.log-a.pb-a.pc-a.pa)/3600; return hp2>0; })
+    .map(function(a){ const hh2=(a.log-a.pb-a.pc-a.pa)/3600; return {n:a.name,v:a.q/hh2,extra:num(a.q)+" ÷ "+h1f(hh2)+" h"}; })
+    .sort(function(a,b){ return b.v-a.v; }).slice(0,8);
+  document.getElementById("rankProd").innerHTML=pr.length? barsHtml(pr,true) : '<div class="missing">Horas disponíveis insuficientes para calcular produtividade no período.</div>';
+  const mov=ags.map(function(a){
+      const p=DP.agents&&DP.agents[a.name]? DP.agents[a.name].q : 0;
+      return {n:a.name,q:a.q,p:p,d:p? (a.q-p)/p*100 : null};
+    }).filter(function(x){ return x.d!==null && Math.abs(x.d)>=15 && (x.q>=30||x.p>=30); })
+    .sort(function(a,b){ return Math.abs(b.d)-Math.abs(a.d); }).slice(0,6);
+  document.getElementById("prodMov").innerHTML=mov.length?
+    '<div class="note">' + mov.map(function(x){
+      return '<div style="padding:4px 0;border-top:1px solid var(--line)"><b>'+esc(x.n)+'</b> · '+num(x.p)+' → '+num(x.q)+
+        ' <span class="'+(x.d>=0?"v-ok":"v-bad")+'">'+(x.d>=0?"+":"")+h1f(x.d)+'%</span></div>';
+    }).join("") + '</div>'
+    : '<div class="missing">Nenhuma variação acima de 15% com volume relevante contra o período anterior.</div>';
+  const nota=[];
+  nota.push("Horas produtivas = horas logadas − pausas improdutivas − encerramento de turno (inclui as pausas produtivas).");
+  nota.push("Horas disponíveis para atendimento = horas produtivas − pausas produtivas, ou seja, o tempo em que o colaborador podia estar atendendo.");
+  nota.push("Atendimentos por hora disponível usa essa base, não a hora produtiva cheia.");
+  if(!hp.disp) nota.push("Comparativo de horas e de produtividade indisponível: a base de jornada do painel começa em 01/10/2026. Fonte necessária: relatório de Login e de Pausas da Matrix (tabelas csc_jornada_sessao e csc_pausa_registro).");
+  document.getElementById("prodNota").textContent=nota.join(" ");
+  chartProd();
+}
+function chartProd(){
+  const cv=document.getElementById("chProd");
+  if(!cv||!cv.offsetParent) return;
+  if(charts.prod){ charts.prod.destroy(); charts.prod=null; }
+  let labels=[], vals=[];
+  if(PROD_EIXO==="ag"){
+    agList(D).filter(function(a){return a.q>0;}).sort(function(a,b){return b.q-a.q;}).forEach(function(a){ labels.push(a.name); vals.push(a.q); });
+  } else if(PROD_EIXO==="turno"){
+    const m={}; Object.keys(D.agents).forEach(function(n){ const t=(RAW.esc[n]&&RAW.esc[n].turno)||"sem escala"; m[t]=(m[t]||0)+D.agents[n].q; });
+    Object.keys(m).sort().forEach(function(t){ labels.push(t); vals.push(m[t]); });
+  } else {
+    D.filas.forEach(function(f){ labels.push(f.f); vals.push(f.q); });
+  }
+  if(!labels.length) return;
+  charts.prod=new Chart(cv,{type:"bar",data:{labels:labels,datasets:[{label:"Atendimentos",data:vals,backgroundColor:C.azul,borderWidth:0,backgroundColor:C.azul,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:function(c){ return num(c.parsed.y)+" atendimentos"; }}}},
+      scales:{y:{grid:{color:C.line},border:{display:false},ticks:{font:{size:10},color:"#6b7787"}},
+        x:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:"#6b7787",maxRotation:45,minRotation:0,autoSkip:false}}}}});
+}
+function barsHtml(items,dec){
+  const mx=Math.max.apply(null,items.map(function(i){return i.v;}))||1;
+  return items.map(function(i){
+    return '<div class="brow"><div class="l"><span>'+esc(i.n)+(i.extra? ' <i class="muted" style="font-style:normal;font-size:10.5px">('+i.extra+')</i>':'')+'</span>'+
+      '<span><b>'+(dec? h1f(i.v) : num(i.v))+'</b></span></div>'+
+      '<div class="btrack"><div class="bfill" style="width:'+(i.v/mx*100)+'%"></div></div></div>';
+  }).join("");
 }
 
 /* ---------- inteligência IA ---------- */
@@ -1328,14 +1482,58 @@ function renderIA(){
   document.getElementById("analise").innerHTML=h;
   // todos os alertas
   document.getElementById("alCount").textContent=al.length+" no período";
-  document.getElementById("alertasFull").innerHTML=al.length? al.map(function(a,i){
-    const cls=a.g==="crítico"?"":(a.g==="alto"?"alto":"moderado");
-    return '<div class="alertfull '+cls+'" id="al-'+i+'"><div class="ah"><b>'+esc(a.tit)+'</b><span class="sev '+(a.g==="crítico"?"s-crit":(a.g==="alto"?"s-alto":"s-mod"))+'">'+a.g+'</span></div>'+
-      '<dl><dt>Evidência</dt><dd>'+a.ev+'</dd><dt>Alvo</dt><dd>'+esc(a.alvo)+'</dd><dt>Período</dt><dd>'+a.per+'</dd><dt>Comparativo</dt><dd>'+a.comp+'</dd>'+
-      '<dt>Hipótese</dt><dd>'+a.hip+'</dd><dt>Ação</dt><dd>'+a.acao+'</dd><dt>Responsável</dt><dd>'+a.resp+'</dd><dt>Status</dt><dd>'+a.st+'</dd></dl></div>';
-  }).join("") : '<div class="missing">Nenhum alerta no período.</div>';
+  const grupos=[{g:"crítico",rot:"Prioridade crítica"},{g:"alto",rot:"Prioridade alta"},{g:"moderado",rot:"Prioridade moderada"}];
+  let hA="";
+  grupos.forEach(function(gp){
+    const lst=al.filter(function(a){return a.g===gp.g;});
+    if(!lst.length) return;
+    hA+='<div class="grpia"><h3>'+gp.rot+' · '+lst.length+'</h3>';
+    hA+=lst.map(function(a){
+      const i=al.indexOf(a);
+      const cls=a.g==="crítico"?"crit":(a.g==="alto"?"alto":"");
+      return '<details class="ialerta '+cls+'" id="al-'+i+'"><summary><b>'+esc(a.tit)+'</b><span class="sev '+(a.g==="crítico"?"s-crit":(a.g==="alto"?"s-alto":"s-mod"))+'">'+a.g+'</span></summary>'+
+        '<div class="ial-body"><dl><dt>Evidência</dt><dd>'+a.ev+'</dd><dt>Alvo</dt><dd>'+esc(a.alvo)+'</dd><dt>Período</dt><dd>'+a.per+'</dd><dt>Comparativo</dt><dd>'+a.comp+'</dd>'+
+        '<dt>Hipótese</dt><dd>'+a.hip+'</dd><dt>Ação</dt><dd>'+a.acao+'</dd><dt>Responsável</dt><dd>'+a.resp+'</dd><dt>Status</dt><dd>'+a.st+'</dd></dl></div></details>';
+    }).join("");
+    hA+='</div>';
+  });
+  document.getElementById("alertasFull").innerHTML=al.length? hA : '<div class="missing">Nenhum alerta no período.</div>';
   const badge=document.getElementById("badgeIA");
   badge.textContent=al.length; badge.style.display=al.length? "inline-block":"none";
+}
+
+
+/* ---------- seções recolhíveis ---------- */
+function tornarSecoes(){
+  const wrap=document.getElementById("tab-indicadores");
+  if(!wrap) return;
+  const alvos=Array.prototype.slice.call(wrap.children).filter(function(el){
+    return el.id!=="detalhe" && (el.classList.contains("card")||el.classList.contains("grid"));
+  });
+  let n=0;
+  alvos.forEach(function(el){
+    const d=document.createElement("details");
+    d.className="sec";
+    if(n===0) d.open=true;
+    const sm=document.createElement("summary");
+    const head=el.querySelector(".head h2")||el.querySelector("h2");
+    let titulo="Indicadores", sub="";
+    if(head){ titulo=head.childNodes[0]? head.childNodes[0].textContent.trim() : head.textContent.trim(); const s=head.querySelector("small"); if(s) sub=s.textContent; }
+    else if(el.classList.contains("grid")) titulo="Prioridade gerencial e movimentos";
+    sm.innerHTML=esc(titulo)+(sub? ' <small>'+esc(sub)+'</small>':'');
+    const body=document.createElement("div");
+    body.className="sec-body";
+    wrap.insertBefore(d,el);
+    d.appendChild(sm); d.appendChild(body); body.appendChild(el);
+    n++;
+  });
+  document.querySelectorAll("#tab-indicadores details.sec").forEach(function(d){
+    d.addEventListener("toggle",function(){
+      if(!d.open) return;
+      if(d.querySelector("#chPs")) chartPs();
+      if(d.querySelector("#chProd")) chartProd();
+    });
+  });
 }
 
 /* ---------- filtros e inicialização ---------- */
@@ -1391,6 +1589,7 @@ document.getElementById("verAlertas").addEventListener("click",function(){ setTa
 document.querySelectorAll("#tblAg th.sortable").forEach(function(th){
   th.addEventListener("click",function(){ const k=th.dataset.k; agSort.dir=(agSort.k===k)? -agSort.dir : -1; agSort.k=k; if(D) renderColab(); });
 });
+tornarSecoes();
 fillSelects();
 aplicar();
 (async function(){
