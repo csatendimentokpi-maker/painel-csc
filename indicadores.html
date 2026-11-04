@@ -288,6 +288,8 @@ th.sortable:hover{color:var(--azul)}
     <div class="card" style="margin-top:12px">
       <div class="head"><h2>Panorama de indicadores <small>todos os indicadores do período</small></h2><button class="link" id="irPainel">Ver detalhes</button></div>
       <div class="pchips" id="panChips"></div>
+      <h2 style="font-size:12px;margin:16px 0 8px">Pesquisa de satisfação <small class="muted">ARROBA PESQUISA - HUMANA · somente a equipe CSC</small></h2>
+      <div class="pchips" id="panChipsPesq"></div>
       <div class="phl" id="panDestaques"></div>
       <div class="note" id="panNota" style="margin-top:10px"></div>
     </div>
@@ -904,19 +906,23 @@ function renderPanorama(){
   const part=qp(P.resp,P.env), exc=qp(P.x,P.resp), bom=qp(P.b,P.resp), pm=qp(P.p,P.resp);
   const trPct=t.q? D.tr.length/t.q*100 : null;
   const chips=[
-    {l:"Nível de Serviço", v:v.ns===null?"—":pct(v.ns), m:"meta "+META.ns+"%", b:bandaInd("ns",v.ns,META.ns), alvo:"ns"},
-    {l:"TME", v:v.tme===null?"—":fmt(v.tme), m:"meta "+fmt(META.tme), b:bandaInd("tme",v.tme,META.tme), alvo:"tme"},
-    {l:"TMA ajustado", v:v.tma===null?"—":fmt(v.tma), m:"meta "+fmt(mt.tma), b:bandaInd("tma",v.tma,mt.tma), alvo:"tma"},
     {l:"TMIA", v:v.tmia===null?"—":fmt(v.tmia), m:"meta "+fmt(META.tmia), b:bandaInd("tmia",v.tmia,META.tmia)},
-    {l:"Transferidos", v:num(D.tr.length), m:trPct===null?"—":pct(trPct)+" do volume", b:bandaInd("transf",trPct,TRANSF_BAND.ok)},
-    {l:"Pesquisa · participação", v:part===null?"—":pct(part), m:num(P.resp)+" de "+num(P.env)+" respondidas", b:bandaInd("part",part)},
-    {l:"Pesquisa · excelente", v:exc===null?"—":pct(exc), m:"meta ≥ 80%", b:bandaInd("exc",exc)},
-    {l:"Pesquisa · bom", v:bom===null?"—":pct(bom), m:"meta ≤ 15%", b:bandaInd("bom",bom)},
-    {l:"Pesquisa · precisa melhorar", v:pm===null?"—":pct(pm), m:"meta ≤ 5%", b:bandaInd("pm",pm)}
+    {l:"TMA ajustado", v:v.tma===null?"—":fmt(v.tma), m:"meta "+fmt(mt.tma), b:bandaInd("tma",v.tma,mt.tma), alvo:"tma"},
+    {l:"TME", v:v.tme===null?"—":fmt(v.tme), m:"meta "+fmt(META.tme), b:bandaInd("tme",v.tme,META.tme), alvo:"tme"},
+    {l:"Nível de Serviço", v:v.ns===null?"—":pct(v.ns), m:"meta "+META.ns+"%", b:bandaInd("ns",v.ns,META.ns), alvo:"ns"},
+    {l:"Transferidos", v:num(D.tr.length), m:trPct===null?"—":pct(trPct)+" do volume", b:bandaInd("transf",trPct,TRANSF_BAND.ok)}
   ];
-  document.getElementById("panChips").innerHTML=chips.map(function(c){
+  const chipsPesq=[
+    {l:"Participação", v:part===null?"—":pct(part), m:"meta ≥ 50% · "+num(P.resp)+" de "+num(P.env)+" respondidas", b:bandaInd("part",part)},
+    {l:"Excelente", v:exc===null?"—":pct(exc), m:"meta ≥ 80%", b:bandaInd("exc",exc)},
+    {l:"Bom", v:bom===null?"—":pct(bom), m:"meta ≤ 15%", b:bandaInd("bom",bom)},
+    {l:"Precisa melhorar", v:pm===null?"—":pct(pm), m:"meta ≤ 5%", b:bandaInd("pm",pm)}
+  ];
+  const chipHtml=function(c){
     return '<div class="pch '+c.b+'"><div class="l"><span class="dot"></span>'+c.l+'</div><div class="v">'+c.v+'</div><div class="m">'+c.m+'</div></div>';
-  }).join("");
+  };
+  document.getElementById("panChips").innerHTML=chips.map(chipHtml).join("");
+  document.getElementById("panChipsPesq").innerHTML=chipsPesq.map(chipHtml).join("");
 
   // eficiência: quantidade de metas cumpridas entre NS, TME, TMA e TMIA (amostra mínima 30 atendimentos)
   const nomes=Object.keys(D.agents);
