@@ -400,7 +400,7 @@ th.sortable:hover{color:var(--azul)}
         <th class="num sortable" data-k="q">Atend.</th><th class="num sortable" data-k="prod">Atend./h</th>
         <th class="num sortable" data-k="ns">NS 20s</th><th class="num sortable" data-k="tme">TME</th>
         <th class="num sortable" data-k="tma">TMA aj.</th><th class="num sortable" data-k="tmia">TMIA</th>
-        <th class="num sortable" data-k="constancia">Dias na meta</th><th class="num sortable" data-k="transf">Transf.</th>
+        <th class="num sortable" data-k="constancia">Dias na meta</th><th class="num sortable" data-k="transf">Transf.</th><th class="num sortable" data-k="transfPct">% transf.</th><th class="num sortable" data-k="satVal">Satisfação</th>
         <th class="num sortable" data-k="risco">Acompanhamento</th>
       </tr></thead><tbody></tbody></table></div>
     </div>
@@ -1369,16 +1369,17 @@ function rankings(D0,DP0){
     const pa=DP0&&DP0.agents[a.name], pb=DP0&&DP0.agents[b.name];
     return ((pb&&pb.ns!==null? b.ns-pb.ns : -999)) - ((pa&&pa.ns!==null? a.ns-pa.ns : -999));}).slice(0,5);
   const m6=all.slice().sort(function(a,b){ return risco(b)-risco(a); }).slice(0,5);
-  function card(titulo,why,list,fn){
-    return '<div class="rank"><h3>'+titulo+'</h3><ol>'+
-      list.map(function(a){return "<li><b>"+esc(a.name)+"</b> — "+fn(a)+"</li>";}).join("")+
-      '</ol><div class="why">'+why+'</div></div>';
+  function card(titulo,why,list,fn,vazio){
+    const corpo=list.length?
+      '<ol>'+list.map(function(a){return "<li><b>"+esc(a.name)+"</b> — "+fn(a)+"</li>";}).join("")+'</ol>':
+      '<div class="missing" style="font-size:11px">'+(vazio||"Sem dados suficientes no período.")+'</div>';
+    return '<div class="rank"><h3>'+titulo+'</h3>'+corpo+'<div class="why">'+why+'</div></div>';
   }
   return [
     card("Atingimento de metas","Quantos dos quatro indicadores individuais fecham dentro da meta.",m1,function(a){return metaCount(a)+"/4";}),
     card("Produtividade por hora","Atendimentos ÷ horas logadas.",m2,function(a){return h1f(a.prod)+" atend./h";}),
     card("Qualidade do atendimento","60% NS + 40% aderência ao TMA.",m3,function(a){return "NS "+pct(a.ns);}),
-    card("Constância","Dias com NS dentro da meta sobre dias avaliados.",m4,function(a){return a.dMeta+"/"+a.dProd+" dias";}),
+    card("Constância","Dias com NS dentro da meta sobre dias avaliados (mínimo de 3 dias com 5+ atendimentos).",m4,function(a){return a.dMeta+"/"+a.dProd+" dias";}, "Nenhum colaborador com 3 dias avaliados no período."),
     card("Maior evolução","Variação de NS contra o período anterior.",m5,function(a){const pa=DP0&&DP0.agents[a.name];
       if(!pa||pa.ns===null) return "sem base anterior"; const d=a.ns-pa.ns; return (d>=0?"+":"")+d.toFixed(1).replace(".",",")+" p.p.";}),
     card("Necessidade de acompanhamento","Dias fora 40% + distância do NS 30% + TME 20% + transferências 10%.",m6,function(a){return a.dFora+"/"+(a.dProd||0)+" dias fora";})
@@ -1387,6 +1388,12 @@ function rankings(D0,DP0){
 function renderColab(){
   document.getElementById("rankings").innerHTML=rankings(D,DP);
   const rows=agList(D).filter(function(a){return a.q>0||a.transf;});
+  rows.forEach(function(a){
+    a.transfPct = a.q? (a.transf||0)/a.q*100 : null;
+    const pz=D.pesq&&D.pesq.por? D.pesq.por[a.name] : null;
+    a.satN = pz? pz.resp : 0;
+    a.satVal = (pz&&pz.resp)? pz.x/pz.resp*100 : null;
+  });
   rows.sort(function(x,y){
     const A=x[agSort.k],B=y[agSort.k];
     if(A===null||A===undefined) return 1; if(B===null||B===undefined) return -1;
@@ -1401,8 +1408,11 @@ function renderColab(){
     return "<tr><td><b>"+esc(a.name)+"</b></td><td class='muted'>"+esc(a.turno||"—")+"</td><td class='num'>"+num(a.q)+"</td><td class='num'>"+(a.prod?h1f(a.prod):"—")+
       "</td><td class='num'>"+bandaTxt(bandaInd("ns",a.ns,META.ns),pct(a.ns))+"</td><td class='num'>"+bandaTxt(bandaInd("tme",a.tme,META.tme),fmt(a.tme))+
       "</td><td class='num'>"+bandaTxt(bandaInd("tma",a.tma,mtA),fmt(a.tma))+"</td><td class='num'>"+bandaTxt(bandaInd("tmia",a.tmia,META.tmia),fmt(a.tmia))+"</td><td class='num'>"+(a.dProd?a.dMeta+"/"+a.dProd:"—")+
-      "</td><td class='num'>"+num(a.transf||0)+"</td><td><span class='tag "+cls+"'>"+rot+"</span></td></tr>";
-  }).join("") || '<tr><td colspan="11" class="missing">Sem colaboradores no período.</td></tr>';
+      "</td><td class='num'>"+num(a.transf||0)+"</td>"+
+      "<td class='num'>"+(a.transfPct===null?"—":bandaTxt(bandaInd("transf",a.transfPct),pct(a.transfPct)))+"</td>"+
+      "<td class='num'>"+(a.satVal===null?"<span class='muted'>sem respostas</span>":bandaTxt(bandaInd("exc",a.satVal),pct(a.satVal))+" <span class='small muted'>("+a.satN+")</span>")+"</td>"+
+      "<td><span class='tag "+cls+"'>"+rot+"</span></td></tr>";
+  }).join("") || '<tr><td colspan="13" class="missing">Sem colaboradores no período.</td></tr>';
 }
 
 /* ---------- jornada ---------- */
