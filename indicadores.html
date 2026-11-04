@@ -638,7 +638,7 @@ function kpiCards(D0,DP0){
   }
   const bNs=bandaInd("ns",ns,META.ns), bTme=bandaInd("tme",tme,META.tme), bTma=bandaInd("tma",tma,metaTma);
   const cards=[
-    {k:"q", lab:"Atendimentos", val:num(t.q), meta:"janela 08:00\u201323:59", st:"neu", stt:"volume", delta:dd(t.q, p? p.q:null, false, "n")},
+    {k:"q", lab:"Atendimentos", val:num(t.q), meta:"ciclo 00:00\u201323:59", st:"neu", stt:"volume", delta:dd(t.q, p? p.q:null, false, "n")},
     {k:"ns", lab:"N\u00edvel de Servi\u00e7o", val:(ns===null?"-":pct(ns)), meta:"meta "+META.ns+"%", st:bNs, stt:bandaRot(bNs), delta:dd(ns,pns,false,"p")},
     {k:"tme", lab:"Tempo M\u00e9dio de Espera", val:(tme===null?"-":fmt(tme)), meta:"meta "+fmt(META.tme), st:bTme, stt:bandaRot(bTme), delta:dd(tme,ptme,true,"s")},
     {k:"tma", lab:"TMA ajustado", val:(tma===null?"-":fmt(tma)), meta:"meta "+fmt(metaTma), st:bTma, stt:bandaRot(bTma), delta:dd(tma,ptma,true,"s")}
@@ -1002,7 +1002,7 @@ function chartEvol(){
         suggestedMin: m==="ns"? 40 : undefined},
         x:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:"#9aa6b5",maxRotation:0,autoSkip:true}}}}});
   const prevTxt = DP.tot.q? "Comparação com "+i2br(iso2i(DP.de))+" a "+i2br(iso2i(DP.ate)) : "Sem base comparável para o período anterior";
-  document.getElementById("evolLegenda").textContent=prevTxt+" · série diária na janela operacional.";
+  document.getElementById("evolLegenda").textContent=prevTxt+" · série diária de atendimentos (ciclo 00:00–23:59).";
 }
 
 /* ---------- indicadores ---------- */
@@ -1760,7 +1760,7 @@ function renderIA(){
   const risco=ags.filter(function(a){return a.dProd>=3 && a.dFora/a.dProd>=0.4;});
   const melhor=ags.slice().sort(function(a,b){return (b.ns||0)-(a.ns||0);})[0];
   const per=i2br(iso2i(D.de))+" a "+i2br(iso2i(D.ate));
-  let h="<h3>1. Resultado do período</h3><p>Entre "+per+", o CSC atendeu <b>"+num(t.q)+"</b> contatos na janela operacional, com <b>NS de "+pct(ns)+"</b>, TME de "+fmt(tme)+", TMA ajustado de "+fmt(tma)+" e TMIA de "+fmt(tmia)+". Foram cumpridas <b>"+mt.ok+" de "+mt.tot+"</b> metas avaliadas ("+mt.setor+"/"+mt.setorTot+" do setor e "+mt.filas+"/"+mt.filasTot+" das filas).</p>";
+  let h="<h3>1. Resultado do período</h3><p>Entre "+per+", o CSC atendeu <b>"+num(t.q)+"</b> contatos no ciclo 00:00–23:59, com <b>NS de "+pct(ns)+"</b>, TME de "+fmt(tme)+", TMA ajustado de "+fmt(tma)+" e TMIA de "+fmt(tmia)+". Foram cumpridas <b>"+mt.ok+" de "+mt.tot+"</b> metas avaliadas ("+mt.setor+"/"+mt.setorTot+" do setor e "+mt.filas+"/"+mt.filasTot+" das filas).</p>";
   h+="<h3>2. Principais ofensores</h3><p>O indicador de maior prioridade é <b>"+crit[0].nome+"</b> (índice "+crit[0].idx+"/100), fora da meta em "+crit[0].fora+" de "+crit[0].eleg+" dias avaliados.";
   if(piores.length) h+=" Nas filas, "+piores.map(function(f){return "<b>"+esc(f.f)+"</b> ("+pct(f.ns)+")";}).join(", ")+" concentram os desvios de NS.";
   if(risco.length) h+=" No nível individual, "+risco.slice(0,4).map(function(a){return a.name+" ("+a.dFora+"/"+a.dProd+" dias fora)";}).join(", ")+" exigem acompanhamento prioritário.";
@@ -1862,7 +1862,7 @@ function aplicar(){
   escopo.push("<b>"+i2br(iso2i(D.de))+" a "+i2br(iso2i(D.ate))+"</b>");
   escopo.push(D.dias.length+" dia(s) com produção");
   escopo.push("comparativo: "+(DP.tot.q? i2br(iso2i(DP.de))+" a "+i2br(iso2i(DP.ate)) : "sem base"));
-  escopo.push("janela 08:00–23:59 · sem automáticos · texto (sem voz)");
+  escopo.push("TME 08:00–23:59 · demais indicadores 00:00–23:59 · sem automáticos · texto (sem voz)");
   document.getElementById("escopo").innerHTML=escopo.join(' <span style="color:#c9d2de">·</span> ');
   document.getElementById("stamp").textContent="dados de "+RAW.meta.gerado+" · cobertura "+RAW.meta.cobertura;
   Object.keys(dirty).forEach(function(k){dirty[k]=1;});
