@@ -1389,6 +1389,10 @@ function rankings(D0,DP0){
     const pa=DP0&&DP0.agents[a.name], pb=DP0&&DP0.agents[b.name];
     return ((pb&&pb.ns!==null? b.ns-pb.ns : -999)) - ((pa&&pa.ns!==null? a.ns-pa.ns : -999));}).slice(0,5);
   const m6=all.slice().sort(function(a,b){ return risco(b)-risco(a); }).slice(0,5);
+  const totAtiv=all.reduce(function(sm,a){return sm+ativAg(a.name).ati;},0);
+  const m7=all.map(function(a){ return {name:a.name, ati:ativAg(a.name).ati}; })
+    .filter(function(a){ return a.ati>0; })
+    .sort(function(a,b){ return b.ati-a.ati || b.ati-a.ati; }).slice(0,5);
   function card(titulo,why,list,fn,vazio){
     const corpo=list.length?
       '<ol>'+list.map(function(a){return "<li><b>"+esc(a.name)+"</b> — "+fn(a)+"</li>";}).join("")+'</ol>':
@@ -1402,7 +1406,9 @@ function rankings(D0,DP0){
     card("Constância","Dias com NS dentro da meta sobre dias avaliados (mínimo de 3 dias com 5+ atendimentos).",m4,function(a){return a.dMeta+"/"+a.dProd+" dias";}, "Nenhum colaborador com 3 dias avaliados no período."),
     card("Maior evolução","Variação de NS contra o período anterior.",m5,function(a){const pa=DP0&&DP0.agents[a.name];
       if(!pa||pa.ns===null) return "sem base anterior"; const d=a.ns-pa.ns; return (d>=0?"+":"")+d.toFixed(1).replace(".",",")+" p.p.";}),
-    card("Necessidade de acompanhamento","Dias fora 40% + distância do NS 30% + TME 20% + transferências 10%.",m6,function(a){return a.dFora+"/"+(a.dProd||0)+" dias fora";})
+    card("Necessidade de acompanhamento","Dias fora 40% + distância do NS 30% + TME 20% + transferências 10%.",m6,function(a){return a.dFora+"/"+(a.dProd||0)+" dias fora";}),
+    card("Proatividade","Atendimentos ativos, iniciados pela equipe no WhatsApp · percentual sobre o total ativo do período.",m7,function(a){
+      return num(a.ati)+" ativos"+(totAtiv? " · "+pct(a.ati/totAtiv*100) : "");}, "Sem base de atendimentos ativos no período.")
   ].join("");
 }
 let AG_SEL=null;
