@@ -273,6 +273,19 @@ th.sortable:hover{color:var(--azul)}
     <div class="card" style="margin-top:12px">
       <div class="head"><h2>Pesquisa de Satisfação <small>somente a equipe CSC · por colaborador</small></h2></div>
       <div class="grid k5" id="psCards" style="margin-bottom:14px"></div>
+
+      <div class="head" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+        <h2 style="font-size:12.5px">Evolução da pesquisa <small>diário · percentual</small></h2>
+        <div class="seg" id="segPs">
+          <button data-m="part" class="on" onclick="setPs('part')">Participação</button>
+          <button data-m="exc" onclick="setPs('exc')">Excelente</button>
+          <button data-m="bom" onclick="setPs('bom')">Bom</button>
+          <button data-m="pm" onclick="setPs('pm')">Precisa melhorar</button>
+        </div>
+      </div>
+      <div class="chart"><canvas id="chPs"></canvas></div>
+      <div class="note" id="psLegenda" style="margin-top:6px"></div>
+
       <div class="tw"><table id="tblPs"><thead><tr>
         <th>Colaborador</th><th class="num">Enviadas</th><th class="num">Respondidas</th><th class="num">% part.</th>
         <th class="num">Excelente</th><th class="num">% exc.</th><th class="num">Bom</th><th class="num">% bom</th>
@@ -423,7 +436,7 @@ function calc(deIso,ateIso){
     return true;
   });
   /* pesquisa de satisfacao (equipe) */
-  const pesq={}, pesqTot={env:0,resp:0,x:0,b:0,p:0};
+  const pesq={}, pesqTot={env:0,resp:0,x:0,b:0,p:0}, pesqDia={};
   const pesqOk=function(nome){
     if(ign.has(nome)) return false;
     if(selAg && nome!==selAg) return false;
@@ -434,7 +447,12 @@ function calc(deIso,ateIso){
     for(const nome in RAW.pesq){
       if(!pesqOk(nome)) continue;
       let env=0,x=0,b=0,p=0;
-      RAW.pesq[nome].forEach(function(r){ if(r[0]<lo||r[0]>hi) return; env+=r[1]; x+=r[2]; b+=r[3]; p+=r[4]; });
+      RAW.pesq[nome].forEach(function(r){
+        if(r[0]<lo||r[0]>hi) return;
+        env+=r[1]; x+=r[2]; b+=r[3]; p+=r[4];
+        const dd=pesqDia[r[0]]||(pesqDia[r[0]]={d:r[0],env:0,x:0,b:0,p:0});
+        dd.env+=r[1]; dd.x+=r[2]; dd.b+=r[3]; dd.p+=r[4];
+      });
       if(env||x||b||p){ pesq[nome]={env:env,resp:x+b+p,x:x,b:b,p:p}; pesqTot.env+=env; pesqTot.x+=x; pesqTot.b+=b; pesqTot.p+=p; }
     }
     pesqTot.resp=pesqTot.x+pesqTot.b+pesqTot.p;
@@ -454,7 +472,8 @@ function calc(deIso,ateIso){
   }
   const diaArr=Object.keys(dias).map(function(k){return dias[k];}).sort(function(a,b){return a.i-b.i;});
   return {de:deIso,ate:ateIso,agents:agents,filas:filas,dias:diaArr,tr:tr,mot:mot,dst:dst,
-    tot:{q:q,te:te,a20:a20,ta:ta,tm:tm},cei:cei,pesq:{por:pesq,tot:pesqTot}};
+    tot:{q:q,te:te,a20:a20,ta:ta,tm:tm},cei:cei,pesq:{por:pesq,tot:pesqTot,
+    dia:Object.keys(pesqDia).map(function(k){return pesqDia[k];}).sort(function(a,b){return a.d-b.d;})}};
 }
 function equipeDe(f){ for(const e in EQUIPES){ if(EQUIPES[e].indexOf(f)>=0) return e; } return "Outros"; }
 function prevRange(deIso,ateIso){ const n=diasEntre(iso2i(deIso),iso2i(ateIso)); const ate=addDays(iso2i(deIso),-1); const de=addDays(ate,-(n-1)); return {de:i2iso(de),ate:i2iso(ate)}; }
@@ -977,6 +996,41 @@ function verTrAg(ag){ TAg=(TAg===ag? null: ag); renderTransf(); }
 
 
 /* ---------- pesquisa de satisfação ---------- */
+/* ---------- pesquisa: grafico de evolucao ---------- */
+let MPS="part";
+const PS_MET={
+  part:{n:"Participação", meta:50, val:function(o){ return o.env? (o.x+o.b+o.p)/o.env*100 : null; }},
+  exc:{n:"Excelente", meta:80, val:function(o){ const r=o.x+o.b+o.p; return r? o.x/r*100 : null; }},
+  bom:{n:"Bom", meta:15, val:function(o){ const r=o.x+o.b+o.p; return r? o.b/r*100 : null; }},
+  pm:{n:"Precisa melhorar", meta:5, val:function(o){ const r=o.x+o.b+o.p; return r? o.p/r*100 : null; }}
+};
+function setPs(m){
+  MPS=m;
+  document.querySelectorAll("#segPs button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-m")===m); });
+  chartPs();
+}
+function chartPs(){
+  const m=MPS, cfg=PS_MET[m];
+  if(charts.ps){ charts.ps.destroy(); charts.ps=null; }
+  const at=((D.pesq&&D.pesq.dia)||[]).map(function(d){ return cfg.val(d); });
+  const pr=((DP.pesq&&DP.pesq.dia)||[]).map(function(d){ return cfg.val(d); });
+  const n=Math.max(at.length,pr.length);
+  const lb=[]; for(let i=0;i<n;i++) lb.push("D"+(i+1));
+  const ds=[{label:"Período atual",data:at,borderColor:C.azul,backgroundColor:"rgba(41,98,172,.10)",fill:true,tension:.3,pointRadius:2,borderWidth:2,pointBackgroundColor:C.azul,spanGaps:true}];
+  if(pr.length) ds.push({label:"Período anterior",data:pr,borderColor:C.amar,backgroundColor:"transparent",borderDash:[5,4],tension:.3,pointRadius:0,borderWidth:1.6,fill:false,spanGaps:true});
+  ds.push({label:"Meta",data:lb.map(function(){return cfg.meta;}),borderColor:"#c8d2df",borderDash:[3,3],pointRadius:0,borderWidth:1.2,fill:false});
+  charts.ps=new Chart(document.getElementById("chPs"),{type:"line",data:{labels:lb,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{labels:{boxWidth:10,font:{size:10.5},color:"#6b7787"},padding:12},
+        tooltip:{callbacks:{label:function(c){ return c.dataset.label+": "+(c.parsed.y===null?"—":c.parsed.y.toFixed(1).replace(".",",")+"%"); }}}},
+      scales:{y:{grid:{color:C.line},border:{display:false},ticks:{font:{size:10},color:"#6b7787",callback:function(v){return v+"%";}}},
+        x:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:"#9aa6b5",maxRotation:0,autoSkip:true}}}}});
+  const temBase=(DP.pesq&&(DP.pesq.tot.resp||DP.pesq.tot.env));
+  const prevTxt = temBase? "comparação com "+i2br(iso2i(DP.de))+" a "+i2br(iso2i(DP.ate)) : "sem base comparável para o período anterior";
+  const base = m==="part"? "participação = respondidas ÷ enviadas" : "percentual sobre as respondidas";
+  document.getElementById("psLegenda").textContent=cfg.n+" · "+prevTxt+" · "+base+".";
+}
+
 function renderPesquisa(){
   const P=D.pesq||{por:{},tot:{env:0,resp:0,x:0,b:0,p:0}}, t=P.tot;
   const q=function(a,b){ return b? a/b*100 : null; };
@@ -1008,6 +1062,7 @@ function renderPesquisa(){
         '<td>'+sit+'</td></tr>';
     }).join("");
   }
+  chartPs();
   document.getElementById("psNota").innerHTML="Fonte: Matrix › Pesquisa › Relatório de Pesquisa — pesquisa ARROBA PESQUISA - HUMANA, questão de avaliação da qualidade (Excelente / Bom / Precisa melhorar). Somente colaboradores do CSC. Participação calculada sobre as enviadas e avaliações sobre as respondidas. Cobertura da base: "+(RAW.pesqCob||"—")+". Amostras com menos de 5 respostas aparecem como amostra curta.";
 }
 
