@@ -112,7 +112,15 @@ th.sortable:hover{color:var(--azul)}
 .tag{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:999px;white-space:nowrap}
 .t-ok{background:#e7f5ef;color:var(--ok)}.t-bad{background:#fdecea;color:var(--bad)}
 .t-warn{background:#fff6e6;color:#96650a}.t-mut{background:#eef2f7;color:#475467}
-.v-ok{color:var(--ok);font-weight:600}.v-warn{color:#a56800;font-weight:600}.v-bad{color:var(--bad);font-weight:600}.v-mut{color:var(--muted)}
+.v-ok{color:var(--ok);font-weight:600}
+#tblAg tbody tr{cursor:pointer}
+#tblAg tbody tr:hover td{background:#f7fafd}
+.dag .blk{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.dag .blk h3{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px}
+.dag .ln{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0}
+.dag .ln b{font-variant-numeric:tabular-nums;color:var(--azul-esc)}
+.dag .tr4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.dag .tr4 .mini{padding:9px 11px}.v-warn{color:#a56800;font-weight:600}.v-bad{color:var(--bad);font-weight:600}.v-mut{color:var(--muted)}
 /* secoes recolhiveis */
 .sec{border:1px solid var(--line);border-radius:var(--r);background:#fff;margin-top:12px;overflow:hidden}
 .sec>summary{list-style:none;cursor:pointer;padding:12px 15px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--azul-esc)}
@@ -394,16 +402,14 @@ th.sortable:hover{color:var(--azul)}
   <section class="tab" id="tab-colaboradores">
     <div class="grid k3" id="rankings"></div>
     <div class="card" style="margin-top:12px">
-      <div class="head"><h2>Todos os colaboradores <small>clique no cabeçalho para ordenar</small></h2></div>
+      <div class="head"><h2>Todos os colaboradores <small>clique no nome para abrir o detalhe · clique no cabeçalho para ordenar</small></h2></div>
       <div class="tw stick"><table id="tblAg"><thead><tr>
         <th class="sortable" data-k="name">Colaborador</th><th class="sortable" data-k="turno">Turno</th>
-        <th class="num sortable" data-k="q">Atend.</th><th class="num sortable" data-k="prod">Atend./h</th>
-        <th class="num sortable" data-k="ns">NS 20s</th><th class="num sortable" data-k="tme">TME</th>
-        <th class="num sortable" data-k="tma">TMA aj.</th><th class="num sortable" data-k="tmia">TMIA</th>
-        <th class="num sortable" data-k="constancia">Dias na meta</th><th class="num sortable" data-k="transf">Transf.</th><th class="num sortable" data-k="transfPct">% transf.</th><th class="num sortable" data-k="satVal">Satisfação</th>
-        <th class="num sortable" data-k="risco">Acompanhamento</th>
+        <th class="num sortable" data-k="q">Produção</th><th class="num sortable" data-k="metaCount">Metas atingidas</th>
+        <th class="num sortable" data-k="partPct">Participação</th><th class="sortable" data-k="risco">Acompanhamento</th>
       </tr></thead><tbody></tbody></table></div>
     </div>
+    <div id="detAg" style="margin-top:12px"></div>
   </section>
 
   <section class="tab" id="tab-jornada">
@@ -1385,14 +1391,46 @@ function rankings(D0,DP0){
     card("Necessidade de acompanhamento","Dias fora 40% + distância do NS 30% + TME 20% + transferências 10%.",m6,function(a){return a.dFora+"/"+(a.dProd||0)+" dias fora";})
   ].join("");
 }
+let AG_SEL=null;
+function verAg(nome){ AG_SEL=(AG_SEL===nome? null: nome); renderDetAg(); }
+function agentesComPesquisa(){
+  const out={};
+  const pz=(D&&D.pesq&&D.pesq.por)? D.pesq.por : {};
+  Object.keys(pz).forEach(function(k){ out[k]=pz[k]; });
+  return out;
+}
+function contagemTransf(nome){
+  let tot=0,inter=0,intra=0,sem=0;
+  (D.tr||[]).forEach(function(r){
+    if(RAW.agn[r[5]]!==nome) return;
+    tot++; if(r[1]===1) inter++; else intra++; if(r[6]===0) sem++;
+  });
+  return {tot:tot,inter:inter,intra:intra,sem:sem};
+}
+function situacaoAg(a){
+  const r=a.dProd? a.dFora/a.dProd : 0;
+  const cls=r>=0.6?"t-bad":(r>=0.3?"t-warn":"t-ok");
+  const rot=r>=0.6?"prioritário":(r>=0.3?"monitorar":"estável");
+  return {cls:cls,rot:rot};
+}
+function metasCount(a){
+  const mtA=D.cei? META.tmaCEI : META.tma;
+  let c=0;
+  if(a.ns!==null&&a.ns>=META.ns) c++;
+  if(a.tme!==null&&a.tme<=META.tme) c++;
+  if(a.tma!==null&&a.tma<=mtA) c++;
+  if(a.tmia!==null&&a.tmia<=META.tmia) c++;
+  return c;
+}
 function renderColab(){
   document.getElementById("rankings").innerHTML=rankings(D,DP);
   const rows=agList(D).filter(function(a){return a.q>0||a.transf;});
   rows.forEach(function(a){
-    a.transfPct = a.q? (a.transf||0)/a.q*100 : null;
-    const pz=D.pesq&&D.pesq.por? D.pesq.por[a.name] : null;
-    a.satN = pz? pz.resp : 0;
-    a.satVal = (pz&&pz.resp)? pz.x/pz.resp*100 : null;
+    a.metaCount=metasCount(a);
+    const pz=agentesComPesquisa()[a.name];
+    a.partPct=(pz&&pz.env)? pz.resp/pz.env*100 : null;
+    a.satVal=(pz&&pz.resp)? pz.x/pz.resp*100 : null;
+    a.satN=pz? pz.resp : 0;
   });
   rows.sort(function(x,y){
     const A=x[agSort.k],B=y[agSort.k];
@@ -1401,18 +1439,92 @@ function renderColab(){
     return (A-B)*agSort.dir;
   });
   document.querySelector("#tblAg tbody").innerHTML=rows.map(function(a){
-    const r=a.dProd? a.dFora/a.dProd : 0;
-    const cls=r>=0.6?"t-bad":(r>=0.3?"t-warn":"t-ok");
-    const rot=r>=0.6?"prioritário":(r>=0.3?"monitorar":"estável");
-    const mtA=D.cei? META.tmaCEI : META.tma;
-    return "<tr><td><b>"+esc(a.name)+"</b></td><td class='muted'>"+esc(a.turno||"—")+"</td><td class='num'>"+num(a.q)+"</td><td class='num'>"+(a.prod?h1f(a.prod):"—")+
-      "</td><td class='num'>"+bandaTxt(bandaInd("ns",a.ns,META.ns),pct(a.ns))+"</td><td class='num'>"+bandaTxt(bandaInd("tme",a.tme,META.tme),fmt(a.tme))+
-      "</td><td class='num'>"+bandaTxt(bandaInd("tma",a.tma,mtA),fmt(a.tma))+"</td><td class='num'>"+bandaTxt(bandaInd("tmia",a.tmia,META.tmia),fmt(a.tmia))+"</td><td class='num'>"+(a.dProd?a.dMeta+"/"+a.dProd:"—")+
-      "</td><td class='num'>"+num(a.transf||0)+"</td>"+
-      "<td class='num'>"+(a.transfPct===null?"—":bandaTxt(bandaInd("transf",a.transfPct),pct(a.transfPct)))+"</td>"+
-      "<td class='num'>"+(a.satVal===null?"<span class='muted'>sem respostas</span>":bandaTxt(bandaInd("exc",a.satVal),pct(a.satVal))+" <span class='small muted'>("+a.satN+")</span>")+"</td>"+
-      "<td><span class='tag "+cls+"'>"+rot+"</span></td></tr>";
-  }).join("") || '<tr><td colspan="13" class="missing">Sem colaboradores no período.</td></tr>';
+    const st=situacaoAg(a);
+    return "<tr onclick=\"verAg('"+esc(a.name).replace(/'/g,"\\'")+"')\"><td><b>"+esc(a.name)+"</b></td><td class='muted'>"+esc(a.turno||"—")+
+      "</td><td class='num'>"+num(a.q)+"</td><td class='num'>"+a.metaCount+"/4</td>"+
+      "<td class='num'>"+(a.partPct===null?"<span class='muted'>sem envio</span>":bandaTxt(bandaInd("part",a.partPct),pct(a.partPct)))+"</td>"+
+      "<td><span class='tag "+st.cls+"'>"+st.rot+"</span></td></tr>";
+  }).join("") || '<tr><td colspan="6" class="missing">Sem colaboradores no período.</td></tr>';
+  if(AG_SEL && !rows.some(function(a){return a.name===AG_SEL;})) AG_SEL=null;
+  renderDetAg();
+}
+function renderDetAg(){
+  const box=document.getElementById("detAg"); if(!box) return;
+  if(!AG_SEL){ box.innerHTML=""; return; }
+  const nome=AG_SEL;
+  const a=agList(D).filter(function(x){return x.name===nome;})[0];
+  if(!a){ box.innerHTML=""; return; }
+  const mtA=D.cei? META.tmaCEI : META.tma;
+  const tc=contagemTransf(nome);
+  const transfPct=a.q? tc.tot/a.q*100 : null;
+  const pz=agentesComPesquisa()[nome]||null;
+  const env=pz?pz.env:0, resp=pz?pz.resp:0, x=pz?pz.x:0, b=pz?pz.b:0, pm=pz?pz.p:0;
+  const part=env? resp/env*100 : null, exc=resp? x/resp*100 : null, bom=resp? b/resp*100 : null, ruim=resp? pm/resp*100 : null;
+  const st=situacaoAg(a);
+  const mk=metasCount(a);
+
+  function ln(rot,val){ return '<div class="ln"><span>'+rot+'</span><b>'+val+'</b></div>'; }
+
+  // situacao geral e leitura automatica
+  const sitTxt = mk===4? "todas as metas cumpridas" : (mk===3? "3 de 4 metas cumpridas" : (mk===2? "2 de 4 metas cumpridas" : (mk===1? "1 de 4 metas cumpridas" : "nenhuma meta cumprida")));
+  const fortes=[], atencao=[];
+  if(a.ns!==null&&a.ns>=META.ns) fortes.push("NS dentro da meta ("+pct(a.ns)+")");
+  if(a.tma!==null&&a.tma<=mtA) fortes.push("TMA ajustado dentro da meta ("+fmt(a.tma)+")");
+  if(a.tmia!==null&&a.tmia<=META.tmia) fortes.push("TMIA dentro da meta ("+fmt(a.tmia)+")");
+  if(a.tme!==null&&a.tme<=META.tme) fortes.push("TME dentro da meta ("+fmt(a.tme)+")");
+  if(mk>=3) fortes.push(mk+" de 4 metas cumpridas");
+  if(exc!==null&&exc>=80) fortes.push("satisfação dentro da meta ("+pct(exc)+" de excelente)");
+  if(transfPct!==null&&transfPct<=15) fortes.push("transferências sob controle ("+pct(transfPct)+" do volume)");
+  if(a.ns!==null&&a.ns<META.ns) atencao.push("NS "+pct(a.ns)+" contra meta de "+pct(META.ns,0));
+  if(transfPct!==null&&transfPct>25) atencao.push("transferências em "+pct(transfPct)+" do volume");
+  if(exc!==null&&exc<80) atencao.push("excelente em "+pct(exc)+", abaixo dos 80%");
+  if(resp>0&&resp<5) atencao.push("amostra de pesquisa curta ("+resp+" respostas)");
+  if(a.dProd&&a.dFora/a.dProd>=0.6) atencao.push("fora da meta em "+a.dFora+" de "+a.dProd+" dias avaliados");
+  let acao="Manter acompanhamento padrão e revisar apenas se houver piora no período seguinte.";
+  if(transfPct!==null&&transfPct>25) acao="Revisar a causa das transferências, separando as que vão para outra fila das que ficam na mesma fila, e checar o registro de motivo.";
+  else if(a.ns!==null&&a.ns<META.ns) acao="Observar horários de pico e distribuição da fila, porque o NS baixo costuma vir de espera, não de ritmo de atendimento.";
+  else if(exc!==null&&exc<80) acao="Ler os comentários das avaliações e ouvir uma amostra de conversas antes de definir treinamento.";
+  else if(mk>=3) acao="Manter o padrão e usar o caso como referência de boas práticas para a equipe.";
+
+  const forte = fortes.length? fortes.slice(0,2).join(" · ") : "sem indicador acima da meta no período";
+  const atencaoTxt = atencao.length? atencao.slice(0,2).join(" · ") : "nenhum desvio relevante no período";
+
+  box.innerHTML='<div class="card dag">'+
+    '<div class="head" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
+      '<h2>DETALHE DO COLABORADOR · '+esc(nome)+' <small>'+esc(a.turno||"—")+'</small></h2>'+
+      '<button class="link" onclick="verAg(null)">fechar</button></div>'+
+    '<div class="note" style="margin-bottom:12px">Situação geral: <b>'+sitTxt+'</b> · Dias na meta: <b>'+(a.dProd? a.dMeta+"/"+a.dProd : "—")+
+      '</b> · Acompanhamento: <b>'+st.rot+'</b></div>'+
+    '<div class="grid k3">'+
+      '<div class="blk"><h3>Produção</h3>'+
+        ln("Atendimentos",num(a.q))+
+        ln("Enviadas para pesquisa",num(env))+
+        ln("Respondidas",num(resp))+
+        ln("Participação",part===null?"—":pct(part))+ '</div>'+
+      '<div class="blk"><h3>Eficiência</h3>'+
+        ln("TMA ajustado",bandaTxt(bandaInd("tma",a.tma,mtA),fmt(a.tma)))+
+        ln("TMIA",bandaTxt(bandaInd("tmia",a.tmia,META.tmia),fmt(a.tmia)))+
+        ln("TME",bandaTxt(bandaInd("tme",a.tme,META.tme),fmt(a.tme)))+
+        ln("NS 20s",bandaTxt(bandaInd("ns",a.ns,META.ns),pct(a.ns)))+ '</div>'+
+      '<div class="blk"><h3>Qualidade</h3>'+
+        ln("Excelente",num(x)+" · "+(exc===null?"—":pct(exc)))+
+        ln("Bom",num(b)+" · "+(bom===null?"—":pct(bom)))+
+        ln("Precisa melhorar",num(pm)+" · "+(ruim===null?"—":pct(ruim)))+
+        ln("Situação",exc===null?"sem respostas":(exc>=80?"dentro da meta":"fora da meta"))+ '</div>'+
+    '</div>'+
+    '<div class="tr4">'+
+      '<div class="mini"><div class="l">Transferidos</div><div class="v">'+num(tc.tot)+'</div><div class="p">'+(transfPct===null?"—":pct(transfPct)+" do volume")+'</div></div>'+
+      '<div class="mini"><div class="l">Outra fila</div><div class="v">'+num(tc.inter)+'</div><div class="p">'+(tc.tot?pct(tc.inter/tc.tot*100):"—")+' das transferências</div></div>'+
+      '<div class="mini"><div class="l">Mesma fila</div><div class="v">'+num(tc.intra)+'</div><div class="p">'+(tc.tot?pct(tc.intra/tc.tot*100):"—")+' das transferências</div></div>'+
+      '<div class="mini"><div class="l">Sem motivo (ID)</div><div class="v">'+num(tc.sem)+'</div><div class="p">'+(tc.tot?pct(tc.sem/tc.tot*100):"—")+' das transferências</div></div>'+
+    '</div>'+
+    '<div class="psread" style="margin:14px 0 0">'+
+      '<div><b>Ponto forte:</b> '+forte+'</div>'+
+      '<div><b>Ponto de atenção:</b> '+atencaoTxt+'</div>'+
+      '<div><b>Ação sugerida:</b> '+acao+'</div>'+
+    '</div>'+
+    '<div class="note" style="margin-top:10px">Leitura automática gerada a partir dos indicadores do período; é indício para investigação, não diagnóstico. TMA ajustado = TA ÷ atendimentos ÷ 6. Percentuais de qualidade sobre as respostas e de transferência sobre o volume.</div>'+
+  '</div>';
 }
 
 /* ---------- jornada ---------- */
