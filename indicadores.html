@@ -1516,7 +1516,7 @@ function tornarSecoes(){
     d.className="sec";
     if(n===0) d.open=true;
     const sm=document.createElement("summary");
-    const head=el.querySelector(".head h2")||el.querySelector("h2");
+    const head=el.classList.contains("grid")? null : (el.querySelector(".head h2")||el.querySelector("h2"));
     let titulo="Indicadores", sub="";
     if(head){ titulo=head.childNodes[0]? head.childNodes[0].textContent.trim() : head.textContent.trim(); const s=head.querySelector("small"); if(s) sub=s.textContent; }
     else if(el.classList.contains("grid")) titulo="Prioridade gerencial e movimentos";
