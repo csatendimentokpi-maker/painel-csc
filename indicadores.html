@@ -53,6 +53,17 @@ input[type=date]:focus,select:focus{outline:none;border-color:var(--azul);box-sh
 .k2{grid-template-columns:1fr 1fr}
 .k3{grid-template-columns:repeat(3,1fr)}
 .k5{grid-template-columns:repeat(5,1fr)}
+/* pesquisa: faixa de leitura e tabela fixa */
+.psread{display:flex;flex-wrap:wrap;gap:6px 18px;border-left:3px solid var(--amarelo);background:#fffdf6;padding:8px 12px;border-radius:6px;margin:0 0 12px}
+.psread div{font-size:11.5px;color:#5b6472;line-height:1.45}
+.psread b{color:var(--azul-esc);font-weight:800}
+.psTbl{max-height:430px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.psTbl thead th{position:sticky;top:0;z-index:2;background:#fbfcfe;cursor:pointer;user-select:none}
+.psTbl tbody td:first-child,.psTbl thead th:first-child{position:sticky;left:0;z-index:3;background:#fff}
+.psTbl thead th:first-child{z-index:4;background:#fbfcfe}
+.psTbl th .ar{font-size:9px;color:var(--azul);margin-left:3px}
+.psTbl td.num{font-variant-numeric:tabular-nums}
+
 .kpi{cursor:pointer;transition:border-color .15s,transform .15s;position:relative}
 .kpi:hover{border-color:#c6d3e6}
 .kpi:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
@@ -274,6 +285,8 @@ th.sortable:hover{color:var(--azul)}
       <div class="head"><h2>Pesquisa de Satisfação <small>somente a equipe CSC · por colaborador</small></h2></div>
       <div class="grid k5" id="psCards" style="margin-bottom:14px"></div>
 
+      <div class="psread" id="psLeitura"></div>
+
       <div class="head" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
         <h2 style="font-size:12.5px">Evolução da pesquisa <small>diário · percentual</small></h2>
         <div class="seg" id="segPs">
@@ -286,10 +299,18 @@ th.sortable:hover{color:var(--azul)}
       <div class="chart"><canvas id="chPs"></canvas></div>
       <div class="note" id="psLegenda" style="margin-top:6px"></div>
 
-      <div class="tw"><table id="tblPs"><thead><tr>
-        <th>Colaborador</th><th class="num">Enviadas</th><th class="num">Respondidas</th><th class="num">% part.</th>
-        <th class="num">Excelente</th><th class="num">% exc.</th><th class="num">Bom</th><th class="num">% bom</th>
-        <th class="num">Precisa melhorar</th><th class="num">% precisa</th><th>Situação</th>
+      <div class="tw psTbl"><table id="tblPs"><thead><tr>
+        <th data-k="nome" onclick="psSetSort('nome')">Colaborador<span class="ar"></span></th>
+        <th class="num" data-k="env" onclick="psSetSort('env')">Enviadas<span class="ar"></span></th>
+        <th class="num" data-k="resp" onclick="psSetSort('resp')">Respondidas<span class="ar"></span></th>
+        <th class="num" data-k="part" onclick="psSetSort('part')">% part.<span class="ar"></span></th>
+        <th class="num" data-k="x" onclick="psSetSort('x')">Excelente<span class="ar"></span></th>
+        <th class="num" data-k="exc" onclick="psSetSort('exc')">% exc.<span class="ar"></span></th>
+        <th class="num" data-k="b" onclick="psSetSort('b')">Bom<span class="ar"></span></th>
+        <th class="num" data-k="bom" onclick="psSetSort('bom')">% bom<span class="ar"></span></th>
+        <th class="num" data-k="p" onclick="psSetSort('p')">Precisa melhorar<span class="ar"></span></th>
+        <th class="num" data-k="pm" onclick="psSetSort('pm')">% precisa<span class="ar"></span></th>
+        <th data-k="sit" onclick="psSetSort('sit')">Situação (Excelente)<span class="ar"></span></th>
       </tr></thead><tbody></tbody></table></div>
       <div class="note" id="psNota" style="margin-top:10px"></div>
     </div>
@@ -1016,7 +1037,7 @@ function chartPs(){
   const pr=((DP.pesq&&DP.pesq.dia)||[]).map(function(d){ return cfg.val(d); });
   const n=Math.max(at.length,pr.length);
   const lb=[]; for(let i=0;i<n;i++) lb.push("D"+(i+1));
-  const ds=[{label:"Período atual",data:at,borderColor:C.azul,backgroundColor:"rgba(41,98,172,.10)",fill:true,tension:.3,pointRadius:2,borderWidth:2,pointBackgroundColor:C.azul,spanGaps:true}];
+  const ds=[{label:"Período atual",data:at,borderColor:C.azul,backgroundColor:"transparent",fill:false,tension:.3,pointRadius:2,borderWidth:2,pointBackgroundColor:C.azul,spanGaps:true}];
   if(pr.length) ds.push({label:"Período anterior",data:pr,borderColor:C.amar,backgroundColor:"transparent",borderDash:[5,4],tension:.3,pointRadius:0,borderWidth:1.6,fill:false,spanGaps:true});
   ds.push({label:"Meta",data:lb.map(function(){return cfg.meta;}),borderColor:"#c8d2df",borderDash:[3,3],pointRadius:0,borderWidth:1.2,fill:false});
   charts.ps=new Chart(document.getElementById("chPs"),{type:"line",data:{labels:lb,datasets:ds},
@@ -1031,28 +1052,45 @@ function chartPs(){
   document.getElementById("psLegenda").textContent=cfg.n+" · "+prevTxt+" · "+base+".";
 }
 
-function renderPesquisa(){
-  const P=D.pesq||{por:{},tot:{env:0,resp:0,x:0,b:0,p:0}}, t=P.tot;
-  const q=function(a,b){ return b? a/b*100 : null; };
-  const part=q(t.resp,t.env), exc=q(t.x,t.resp), bom=q(t.b,t.resp), pm=q(t.p,t.resp);
-  const cards=[
-    {lab:"Enviadas",val:num(t.env),meta:"no período",b:"mut",rot:"base"},
-    {lab:"Participação",val:part===null?"—":pct(part),meta:"meta ≥ 50%",b:bandaInd("part",part)},
-    {lab:"Excelente",val:exc===null?"—":pct(exc),meta:"meta ≥ 80%",b:bandaInd("exc",exc)},
-    {lab:"Bom",val:bom===null?"—":pct(bom),meta:"meta ≤ 15%",b:bandaInd("bom",bom)},
-    {lab:"Precisa melhorar",val:pm===null?"—":pct(pm),meta:"meta ≤ 5%",b:bandaInd("pm",pm)}
-  ];
-  document.getElementById("psCards").innerHTML=cards.map(function(c){
-    return '<div class="card kpi" style="cursor:default"><div class="lab">'+c.lab+'</div><div class="val">'+c.val+'</div>'+
-      '<div class="row"><span>'+c.meta+'</span><span class="st '+c.b+'"><span class="d"></span>'+bandaRot(c.b)+'</span></div></div>';
-  }).join("");
-  const nomes=Object.keys(P.por).sort(function(a,b){ return P.por[b].resp-P.por[a].resp || P.por[b].env-P.por[a].env; });
+let PS_SORT={k:"resp",dir:-1};
+function psSetSort(k){
+  if(PS_SORT.k===k) PS_SORT.dir*=-1;
+  else { PS_SORT.k=k; PS_SORT.dir=(k==="nome"||k==="part"||k==="exc")?1:-1; }
+  psTabela();
+}
+function psQ(a,b){ return b? a/b*100 : null; }
+function psValor(n,k,o){
+  if(k==="nome") return n.toLowerCase();
+  if(k==="env") return o.env;
+  if(k==="resp") return o.resp;
+  if(k==="x") return o.x;
+  if(k==="b") return o.b;
+  if(k==="p") return o.p;
+  if(k==="part") return psQ(o.resp,o.env);
+  if(k==="exc") return psQ(o.x,o.resp);
+  if(k==="bom") return psQ(o.b,o.resp);
+  if(k==="pm") return psQ(o.p,o.resp);
+  if(k==="sit") return o.resp<5? -1 : psQ(o.x,o.resp);
+  return 0;
+}
+function psTabela(){
+  const P=D.pesq||{por:{}};
+  const nomes=Object.keys(P.por);
+  const k=PS_SORT.k, dir=PS_SORT.dir;
+  nomes.sort(function(a,b){
+    const va=psValor(a,k,P.por[a]), vb=psValor(b,k,P.por[b]);
+    if(va===null&&vb===null) return 0;
+    if(va===null) return 1;
+    if(vb===null) return -1;
+    if(typeof va==="string") return dir*va.localeCompare(vb);
+    return dir*(va-vb);
+  });
   const tb=document.querySelector("#tblPs tbody");
   if(!nomes.length){
     tb.innerHTML='<tr><td colspan="11" class="muted">Sem pesquisa registrada no período para a equipe.</td></tr>';
   } else {
     tb.innerHTML=nomes.map(function(n){
-      const o=P.por[n], pa=q(o.resp,o.env), ex=q(o.x,o.resp), bo=q(o.b,o.resp), pr=q(o.p,o.resp);
+      const o=P.por[n], pa=psQ(o.resp,o.env), ex=psQ(o.x,o.resp), bo=psQ(o.b,o.resp), pr=psQ(o.p,o.resp);
       const sit = o.resp<5 ? '<span class="tag t-mut">amostra curta</span>' : bandaTag(bandaInd("exc",ex));
       return '<tr><td><b>'+n+'</b></td><td class="num">'+num(o.env)+'</td><td class="num">'+num(o.resp)+'</td>'+
         '<td class="num">'+(pa===null?"—":bandaTxt(bandaInd("part",pa),pct(pa)))+'</td>'+
@@ -1062,8 +1100,59 @@ function renderPesquisa(){
         '<td>'+sit+'</td></tr>';
     }).join("");
   }
+  document.querySelectorAll("#tblPs thead th[data-k]").forEach(function(th){
+    const a=th.querySelector(".ar");
+    if(a) a.textContent = th.getAttribute("data-k")===PS_SORT.k ? (PS_SORT.dir>0?"▲":"▼") : "";
+  });
+}
+function psLeitura(t){
+  const part=psQ(t.resp,t.env), exc=psQ(t.x,t.resp), bom=psQ(t.b,t.resp), pm=psQ(t.p,t.resp);
+  const lst=[
+    {n:"Participação",v:part,m:50,tipo:"min"},
+    {n:"Excelente",v:exc,m:80,tipo:"min"},
+    {n:"Bom",v:bom,m:15,tipo:"max"},
+    {n:"Precisa melhorar",v:pm,m:5,tipo:"max"}
+  ].filter(function(x){ return x.v!==null; }).map(function(x){
+    return {n:x.n,v:x.v,m:x.m,tipo:x.tipo,gap: x.tipo==="min"? x.m-x.v : x.v-x.m};
+  }).sort(function(a,b){ return b.gap-a.gap; });
+  const box=document.getElementById("psLeitura");
+  if(!lst.length){ box.innerHTML=""; return; }
+  const a=lst[0];
+  const frase=function(x){
+    const pp=Math.abs(x.gap).toFixed(1).replace(".",",")+" p.p.";
+    if(x.tipo==="min") return "<b>"+x.n+" "+pct(x.v)+"</b> contra meta de "+x.m+"%: "+pp+" abaixo.";
+    return "<b>"+x.n+" "+pct(x.v)+"</b> contra teto de "+x.m+"%: "+pp+" acima.";
+  };
+  let obs1=frase(a), obs2="";
+  if(lst[1]){
+    obs2=frase(lst[1]);
+    if(lst[1].n==="Excelente"){
+      const cand=Object.keys(D.pesq.por).filter(function(n){ return D.pesq.por[n].resp>=20; })
+        .map(function(n){ return {n:n,v:psQ(D.pesq.por[n].x,D.pesq.por[n].resp)}; })
+        .sort(function(x,y){ return x.v-y.v; });
+      if(cand.length) obs2+=" Menor taxa: "+cand[0].n+" ("+pct(cand[0].v)+").";
+    }
+  }
+  box.innerHTML="<div>"+obs1+"</div>"+(obs2? "<div>"+obs2+"</div>" : "");
+}
+function renderPesquisa(){
+  const P=D.pesq||{por:{},tot:{env:0,resp:0,x:0,b:0,p:0}}, t=P.tot;
+  const part=psQ(t.resp,t.env), exc=psQ(t.x,t.resp), bom=psQ(t.b,t.resp), pm=psQ(t.p,t.resp);
+  const cards=[
+    {lab:"Enviadas",val:num(t.env),meta:"no período",b:"mut"},
+    {lab:"Participação",val:part===null?"—":pct(part),meta:"meta ≥ 50%",b:bandaInd("part",part)},
+    {lab:"Excelente",val:exc===null?"—":pct(exc),meta:"meta ≥ 80%",b:bandaInd("exc",exc)},
+    {lab:"Bom",val:bom===null?"—":pct(bom),meta:"meta ≤ 15%",b:bandaInd("bom",bom)},
+    {lab:"Precisa melhorar",val:pm===null?"—":pct(pm),meta:"meta ≤ 5%",b:bandaInd("pm",pm)}
+  ];
+  document.getElementById("psCards").innerHTML=cards.map(function(c){
+    return '<div class="card kpi" style="cursor:default"><div class="lab">'+c.lab+'</div><div class="val">'+c.val+'</div>'+
+      '<div class="row"><span>'+c.meta+'</span><span class="st '+c.b+'"><span class="d"></span>'+bandaRot(c.b)+'</span></div></div>';
+  }).join("");
+  psLeitura(t);
+  psTabela();
   chartPs();
-  document.getElementById("psNota").innerHTML="Fonte: Matrix › Pesquisa › Relatório de Pesquisa — pesquisa ARROBA PESQUISA - HUMANA, questão de avaliação da qualidade (Excelente / Bom / Precisa melhorar). Somente colaboradores do CSC. Participação calculada sobre as enviadas e avaliações sobre as respondidas. Cobertura da base: "+(RAW.pesqCob||"—")+". Amostras com menos de 5 respostas aparecem como amostra curta.";
+  document.getElementById("psNota").innerHTML="Fonte: Matrix › Pesquisa › Relatório de Pesquisa — pesquisa ARROBA PESQUISA - HUMANA, questão de avaliação da qualidade (Excelente / Bom / Precisa melhorar). Somente colaboradores do CSC. Participação calculada sobre as enviadas e avaliações sobre as respondidas. Cobertura da base: "+(RAW.pesqCob||"—")+". A coluna <b>Situação</b> usa exclusivamente a taxa de Excelente (meta ≥ 80%) e marca <i>amostra curta</i> abaixo de 5 respostas. Contagens em cor neutra; cor apenas nos percentuais que têm meta.";
 }
 
 /* ---------- detalhe do indicador ---------- */
