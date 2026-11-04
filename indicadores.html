@@ -413,7 +413,7 @@ th.sortable:hover{color:var(--azul)}
       <div class="head"><h2>Todos os colaboradores <small>clique no nome para abrir o detalhe · clique no cabeçalho para ordenar</small></h2></div>
       <div class="tw stick"><table id="tblAg"><thead><tr>
         <th class="sortable" data-k="name">Colaborador</th><th class="sortable" data-k="turno">Turno</th>
-        <th class="num sortable" data-k="q">Produção</th><th class="num sortable" data-k="metaCount">Metas atingidas</th>
+        <th class="num sortable" data-k="q">Produção</th><th class="num sortable" data-k="ati">Ativo <span class="muted" style="font-weight:600">proatividade</span></th><th class="num sortable" data-k="metaCount">Metas atingidas</th>
         <th class="num sortable" data-k="partPct">Participação</th><th class="sortable" data-k="risco">Acompanhamento</th>
       </tr></thead><tbody></tbody></table></div>
     </div>
@@ -1433,8 +1433,11 @@ function metasCount(a){
 function renderColab(){
   document.getElementById("rankings").innerHTML=rankings(D,DP);
   const rows=agList(D).filter(function(a){return a.q>0||a.transf;});
+  const totAtiv=rows.reduce(function(sm,a){return sm+ativAg(a.name).ati;},0);
   rows.forEach(function(a){
     a.metaCount=metasCount(a);
+    a.ati=ativAg(a.name).ati;
+    a.atiPct=totAtiv? a.ati/totAtiv*100 : null;
     const pz=agentesComPesquisa()[a.name];
     a.partPct=(pz&&pz.env)? pz.resp/pz.env*100 : null;
     a.satVal=(pz&&pz.resp)? pz.x/pz.resp*100 : null;
@@ -1449,10 +1452,12 @@ function renderColab(){
   document.querySelector("#tblAg tbody").innerHTML=rows.map(function(a){
     const st=situacaoAg(a);
     return "<tr onclick=\"verAg('"+esc(a.name).replace(/'/g,"\\'")+"')\"><td><b>"+esc(a.name)+"</b></td><td class='muted'>"+esc(a.turno||"—")+
-      "</td><td class='num'>"+num(a.q)+"</td><td class='num'>"+a.metaCount+"/4</td>"+
+      "</td><td class='num'>"+num(a.q)+"</td>"+
+      "<td class='num'>"+(a.ati? num(a.ati)+" <span class='small muted'>"+pct(a.atiPct)+"</span>" : "<span class='muted'>—</span>")+"</td>"+
+      "<td class='num'>"+a.metaCount+"/4</td>"+
       "<td class='num'>"+(a.partPct===null?"<span class='muted'>sem envio</span>":bandaTxt(bandaInd("part",a.partPct),pct(a.partPct)))+"</td>"+
       "<td><span class='tag "+st.cls+"'>"+st.rot+"</span></td></tr>";
-  }).join("") || '<tr><td colspan="6" class="missing">Sem colaboradores no período.</td></tr>';
+  }).join("") || '<tr><td colspan="7" class="missing">Sem colaboradores no período.</td></tr>';
   if(AG_SEL && !rows.some(function(a){return a.name===AG_SEL;})) AG_SEL=null;
   renderDetAg();
 }
@@ -1506,7 +1511,9 @@ function renderDetAg(){
     '<div class="grid k3">'+
       '<div class="blk"><h3>Produção</h3>'+
         ln("Atendimentos receptivos",num(a.q))+
-        ln("Atendimentos ativos",(function(){const t=ativAg(nome); return t.ati?num(t.ati)+" · "+pct(t.ati?t.ati/(t.ati+t.rec)*100:0)+" do volume":"—";})())+
+        ln("Atendimentos ativos",(function(){const t=ativAg(nome);
+          const tot=Object.keys(D.agents).reduce(function(sm,n){return sm+ativAg(n).ati;},0);
+          return t.ati? num(t.ati)+" · "+(tot?pct(t.ati/tot*100):"—")+" do total ativo" : "—";})())+
         ln("Enviadas para pesquisa",num(env))+
         ln("Respondidas",num(resp))+
         ln("Participação",part===null?"—":pct(part))+ '</div>'+
