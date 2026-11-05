@@ -1557,14 +1557,18 @@ function renderDetAg(){
         ln("TME",bandaTxt(bandaInd("tme",a.tme,META.tme),fmt(a.tme)))+
         ln("NS 20s",bandaTxt(bandaInd("ns",a.ns,META.ns),pct(a.ns)))+ '</div>'+
       '<div class="blk"><h3>Qualidade</h3>'+
+        ln("Enviadas para pesquisa",num(env))+
+        ln("Respondidas",num(resp))+
+        ln("Participação",part===null?"—":pct(part))+
+        '<div style="height:10px"></div>'+
         ln("Excelente",num(x)+" · "+(exc===null?"—":pct(exc)))+
         ln("Bom",num(b)+" · "+(bom===null?"—":pct(bom)))+
         ln("Precisa melhorar",num(pm)+" · "+(ruim===null?"—":pct(ruim)))+
-        ln("Situação",exc===null?"sem respostas":(exc>=80?"dentro da meta":"fora da meta"))+
-        '<div style="height:8px"></div>'+
-        ln("Enviadas para pesquisa",num(env))+
-        ln("Respondidas",num(resp))+
-        ln("Participação",part===null?"—":pct(part))+ '</div>'+
+        ln("Situação",(function(){
+          if(exc===null) return '<span class="tag t-mut">sem respostas</span>';
+          const bb=bandaInd("exc",exc,80);
+          const rot=bb==="ok"?"bateu a meta":(bb==="warn"?"próximo da meta":"distante da meta");
+          return '<span class="tag t-'+bb+'">'+rot+'</span>';})())+ '</div>'+
     '</div>'+
     '<div class="tr4">'+
       '<div class="mini"><div class="l">Transferidos</div><div class="v">'+num(tc.tot)+'</div><div class="p">'+(transfPct===null?"—":pct(transfPct)+" do volume")+'</div></div>'+
