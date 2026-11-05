@@ -1599,6 +1599,17 @@ function renderDetAg(){
         ln("Excelente",num(x)+" · "+(exc===null?"—":bandaTxt(bandaInd("exc",exc,80),pct(exc)))+' <span class="small muted">meta ≥ 80%</span>')+
         ln("Bom",num(b)+" · "+(bom===null?"—":bandaTxt(bandaInd("bom",bom,15),pct(bom)))+' <span class="small muted">meta ≤ 15%</span>')+
         ln("Precisa melhorar",num(pm)+" · "+(ruim===null?"—":bandaTxt(bandaInd("pm",ruim,5),pct(ruim)))+' <span class="small muted">meta ≤ 5%</span>')+ '</div>'+
+      (function(){
+        const t=talkAgente(nome,FIL.de,FIL.ate);
+        if(!t.q && !t.ativas) return '<div class="blk"><h3>Telefonia (voz)</h3>'+
+          '<div class="ln" style="color:#6c757d;font-size:11.5px">sem chamada no período</div></div>';
+        return '<div class="blk"><h3>Telefonia (voz)</h3>'+
+          ln("Chamadas atendidas",num(t.q))+
+          ln("TMA",(t.tma===null?"—":bandaTxt(tBand("tma",t.tma),fmt(t.tma)))+' <span class="small muted">meta '+fmt(MT.tma)+'</span>')+
+          ln("TME",(t.tme===null?"—":bandaTxt(tBand("tme",t.tme),fmt(t.tme)))+' <span class="small muted">meta '+fmt(MT.tme)+'</span>')+
+          ln("NS 30s",(t.ns===null?"—":bandaTxt(tBand("ns",t.ns),pct(t.ns)))+' <span class="small muted">meta '+MT.ns+'%</span>')+
+          ln("Telefonia ativa",num(t.ativas)+" · "+fmt(t.ativasSeg))+'</div>';
+      })()+
     '</div>'+
     '<div class="tr4">'+
       '<div class="mini"><div class="l">Transferidos</div><div class="v">'+num(tc.tot)+'</div><div class="p">'+(transfPct===null?"—":pct(transfPct)+" do volume")+'</div></div>'+
@@ -2011,10 +2022,10 @@ function talkPeriodo(deIso,ateIso){
       if(selAg && up!==selAg) return;
       if(!okTurno(up)) return;
       const a=d.agentes[up];
-      const acc=o.agentes[up]||(o.agentes[up]={q:0,taSeg:0,teSeg:0,ns30:0,nsOk:0,ativas:0,ativasSeg:0});
+      const acc=o.agentes[up]||(o.agentes[up]={q:0,taSeg:0,teSeg:0,ns30:0,nsBase:0,nsDias:0,ativas:0,ativasSeg:0});
       acc.q+=a.q||0; acc.taSeg+=(a.tma_seg||0)*(a.q||0); acc.teSeg+=(a.tme_seg||0)*(a.q||0);
       acc.ativas+=a.ativas||0; acc.ativasSeg+=a.ativas_seg||0;
-      if(a.ns30!==null&&a.ns30!==undefined&&a.q){ acc.ns30+=a.ns30; acc.nsOk+=1; }
+      if(a.ns30!==null&&a.ns30!==undefined&&a.q){ acc.ns30+=a.ns30; acc.nsBase+=a.q; acc.nsDias+=1; }
       if(selAg){ o.chamadas+=a.q||0; o.atendidas+=a.q||0; o.taSeg+=(a.tma_seg||0)*(a.q||0);
         o.teSeg+=(a.tme_seg||0)*(a.q||0); if(a.ns30!==null&&a.ns30!==undefined) o.ns30+=a.ns30;
         dia.ch+=a.q||0; dia.at+=a.q||0; dia.ns+=a.ns30||0; }
@@ -2025,6 +2036,22 @@ function talkPeriodo(deIso,ateIso){
   o.tmaSeg = o.atendidas ? o.taSeg/o.atendidas : null;
   o.tmeSeg = o.chamadas ? o.teSeg/o.chamadas : null;
   o.serie.sort(function(a,b){ return a.d<b.d?-1:1; });
+  return o;
+}
+
+function talkAgente(nome,deIso,ateIso){
+  const up=String(nome||"").toUpperCase(), lo=iso2i(deIso), hi=iso2i(ateIso);
+  const o={q:0,taSeg:0,teSeg:0,ns30:0,nsBase:0,ativas:0,ativasSeg:0};
+  Object.keys(TALK).forEach(function(k){
+    const i=+k.replace(/-/g,""); if(i<lo||i>hi) return;
+    const a=(TALK[k].agentes||{})[up]; if(!a) return;
+    o.q+=a.q||0; o.taSeg+=(a.tma_seg||0)*(a.q||0); o.teSeg+=(a.tme_seg||0)*(a.q||0);
+    o.ativas+=a.ativas||0; o.ativasSeg+=a.ativas_seg||0;
+    if(a.ns30!==null&&a.ns30!==undefined&&a.q){ o.ns30+=a.ns30; o.nsBase+=a.q; }
+  });
+  o.tma=o.q? o.taSeg/o.q : null;
+  o.tme=o.q? o.teSeg/o.q : null;
+  o.ns=o.nsBase? o.ns30/o.nsBase*100 : null;
   return o;
 }
 
@@ -2082,9 +2109,7 @@ function renderTelefonia(){
     .sort(function(a,b){ return o.agentes[b].q-o.agentes[a].q || o.agentes[b].ativas-o.agentes[a].ativas; });
   tga.innerHTML = ups.length? ups.map(function(u){
     const a=o.agentes[u];
-    const ns = a.ns30||a.nsOk? null : null;
-    const nsq = a.q? (a.ns30!==null && a.q? a.ns30 : null) : null;
-    const nsPctAg = (a.q && a.ns30!==null && a.ns30!==undefined) ? a.ns30/a.q*100 : null;
+    const nsPctAg = a.nsBase ? a.ns30/a.nsBase*100 : null;
     return '<tr><td><b>'+esc(TNOME[u]||u)+'</b></td><td class="num">'+num(a.q)+'</td>'+
       '<td class="num">'+(o.chamadas? pct(a.q/o.chamadas*100):"—")+'</td>'+
       '<td class="num">'+(a.q?fmt(a.taSeg/a.q):"—")+'</td>'+
