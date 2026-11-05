@@ -1559,16 +1559,11 @@ function renderDetAg(){
       '<div class="blk"><h3>Qualidade</h3>'+
         ln("Enviadas para pesquisa",num(env))+
         ln("Respondidas",num(resp))+
-        ln("Participação",part===null?"—":pct(part))+
+        ln("Participação",part===null?"—":bandaTxt(bandaInd("part",part,50),pct(part)))+
         '<div style="height:10px"></div>'+
-        ln("Excelente",num(x)+" · "+(exc===null?"—":pct(exc)))+
-        ln("Bom",num(b)+" · "+(bom===null?"—":pct(bom)))+
-        ln("Precisa melhorar",num(pm)+" · "+(ruim===null?"—":pct(ruim)))+
-        ln("Situação",(function(){
-          if(exc===null) return '<span class="tag t-mut">sem respostas</span>';
-          const bb=bandaInd("exc",exc,80);
-          const rot=bb==="ok"?"bateu a meta":(bb==="warn"?"próximo da meta":"distante da meta");
-          return '<span class="tag t-'+bb+'">'+rot+'</span>';})())+ '</div>'+
+        ln("Excelente",num(x)+" · "+(exc===null?"—":bandaTxt(bandaInd("exc",exc,80),pct(exc))))+
+        ln("Bom",num(b)+" · "+(bom===null?"—":bandaTxt(bandaInd("bom",bom,15),pct(bom))))+
+        ln("Precisa melhorar",num(pm)+" · "+(ruim===null?"—":bandaTxt(bandaInd("pm",ruim,5),pct(ruim))))+ '</div>'+
     '</div>'+
     '<div class="tr4">'+
       '<div class="mini"><div class="l">Transferidos</div><div class="v">'+num(tc.tot)+'</div><div class="p">'+(transfPct===null?"—":pct(transfPct)+" do volume")+'</div></div>'+
