@@ -1544,15 +1544,13 @@ function renderDetAg(){
       '<button class="link" onclick="verAg(null)">fechar</button></div>'+
     '<div class="note" style="margin-bottom:12px">Situação geral: <b>'+sitTxt+'</b> · Dias na meta: <b>'+(a.dProd? a.dMeta+"/"+a.dProd : "—")+
       '</b> · Acompanhamento: <b>'+st.rot+'</b></div>'+
-    '<div class="grid k3">'+
+    '<div class="grid k2">'+
       '<div class="blk"><h3>Produção</h3>'+
-        ln("Atendimentos receptivos",num(a.q))+
+        ln("Atendimentos receptivos",num(a.q))+ '</div>'+
+      '<div class="blk"><h3>Proatividade</h3>'+
         ln("Atendimentos ativos",(function(){const t=ativAg(nome);
           const tot=Object.keys(D.agents).reduce(function(sm,n){return sm+ativAg(n).ati;},0);
-          return t.ati? num(t.ati)+" · "+(tot?pct(t.ati/tot*100):"—")+" do total ativo" : "—";})())+
-        ln("Enviadas para pesquisa",num(env))+
-        ln("Respondidas",num(resp))+
-        ln("Participação",part===null?"—":pct(part))+ '</div>'+
+          return t.ati? num(t.ati)+" · "+(tot?pct(t.ati/tot*100):"—")+" do total ativo" : "—";})())+ '</div>'+
       '<div class="blk"><h3>Eficiência</h3>'+
         ln("TMA ajustado",bandaTxt(bandaInd("tma",a.tma,mtA),fmt(a.tma)))+
         ln("TMIA",bandaTxt(bandaInd("tmia",a.tmia,META.tmia),fmt(a.tmia)))+
@@ -1562,7 +1560,11 @@ function renderDetAg(){
         ln("Excelente",num(x)+" · "+(exc===null?"—":pct(exc)))+
         ln("Bom",num(b)+" · "+(bom===null?"—":pct(bom)))+
         ln("Precisa melhorar",num(pm)+" · "+(ruim===null?"—":pct(ruim)))+
-        ln("Situação",exc===null?"sem respostas":(exc>=80?"dentro da meta":"fora da meta"))+ '</div>'+
+        ln("Situação",exc===null?"sem respostas":(exc>=80?"dentro da meta":"fora da meta"))+
+        '<div style="height:8px"></div>'+
+        ln("Enviadas para pesquisa",num(env))+
+        ln("Respondidas",num(resp))+
+        ln("Participação",part===null?"—":pct(part))+ '</div>'+
     '</div>'+
     '<div class="tr4">'+
       '<div class="mini"><div class="l">Transferidos</div><div class="v">'+num(tc.tot)+'</div><div class="p">'+(transfPct===null?"—":pct(transfPct)+" do volume")+'</div></div>'+
