@@ -1546,24 +1546,26 @@ function renderDetAg(){
       '</b> · Acompanhamento: <b>'+st.rot+'</b></div>'+
     '<div class="grid k2">'+
       '<div class="blk"><h3>Produção</h3>'+
-        ln("Atendimentos receptivos",num(a.q))+ '</div>'+
+        ln("Atendimentos receptivos",(function(){
+          const tot=Object.keys(D.agents).reduce(function(sm,n){return sm+(D.agents[n].q||0);},0);
+          return a.q? num(a.q)+" · "+(tot?pct(a.q/tot*100):"—")+" do total recebido" : "—";})())+ '</div>'+
       '<div class="blk"><h3>Proatividade</h3>'+
         ln("Atendimentos ativos",(function(){const t=ativAg(nome);
           const tot=Object.keys(D.agents).reduce(function(sm,n){return sm+ativAg(n).ati;},0);
           return t.ati? num(t.ati)+" · "+(tot?pct(t.ati/tot*100):"—")+" do total ativo" : "—";})())+ '</div>'+
       '<div class="blk"><h3>Eficiência</h3>'+
-        ln("TMA ajustado",bandaTxt(bandaInd("tma",a.tma,mtA),fmt(a.tma)))+
-        ln("TMIA",bandaTxt(bandaInd("tmia",a.tmia,META.tmia),fmt(a.tmia)))+
-        ln("TME",bandaTxt(bandaInd("tme",a.tme,META.tme),fmt(a.tme)))+
-        ln("NS 20s",bandaTxt(bandaInd("ns",a.ns,META.ns),pct(a.ns)))+ '</div>'+
+        ln("TMA ajustado",bandaTxt(bandaInd("tma",a.tma,mtA),fmt(a.tma))+' <span class="small muted">meta '+fmt(mtA)+'</span>')+
+        ln("TMIA",bandaTxt(bandaInd("tmia",a.tmia,META.tmia),fmt(a.tmia))+' <span class="small muted">meta '+fmt(META.tmia)+'</span>')+
+        ln("TME",bandaTxt(bandaInd("tme",a.tme,META.tme),fmt(a.tme))+' <span class="small muted">meta '+fmt(META.tme)+'</span>')+
+        ln("NS 20s",bandaTxt(bandaInd("ns",a.ns,META.ns),pct(a.ns))+' <span class="small muted">meta '+pct(META.ns)+'</span>')+ '</div>'+
       '<div class="blk"><h3>Qualidade</h3>'+
         ln("Enviadas para pesquisa",num(env))+
         ln("Respondidas",num(resp))+
-        ln("Participação",part===null?"—":bandaTxt(bandaInd("part",part,50),pct(part)))+
+        ln("Participação",(part===null?"—":bandaTxt(bandaInd("part",part,50),pct(part)))+' <span class="small muted">meta ≥ 50%</span>')+
         '<div style="height:10px"></div>'+
-        ln("Excelente",num(x)+" · "+(exc===null?"—":bandaTxt(bandaInd("exc",exc,80),pct(exc))))+
-        ln("Bom",num(b)+" · "+(bom===null?"—":bandaTxt(bandaInd("bom",bom,15),pct(bom))))+
-        ln("Precisa melhorar",num(pm)+" · "+(ruim===null?"—":bandaTxt(bandaInd("pm",ruim,5),pct(ruim))))+ '</div>'+
+        ln("Excelente",num(x)+" · "+(exc===null?"—":bandaTxt(bandaInd("exc",exc,80),pct(exc)))+' <span class="small muted">meta ≥ 80%</span>')+
+        ln("Bom",num(b)+" · "+(bom===null?"—":bandaTxt(bandaInd("bom",bom,15),pct(bom)))+' <span class="small muted">meta ≤ 15%</span>')+
+        ln("Precisa melhorar",num(pm)+" · "+(ruim===null?"—":bandaTxt(bandaInd("pm",ruim,5),pct(ruim)))+' <span class="small muted">meta ≤ 5%</span>')+ '</div>'+
     '</div>'+
     '<div class="tr4">'+
       '<div class="mini"><div class="l">Transferidos</div><div class="v">'+num(tc.tot)+'</div><div class="p">'+(transfPct===null?"—":pct(transfPct)+" do volume")+'</div></div>'+
@@ -1576,6 +1578,10 @@ function renderDetAg(){
       '<div><b>Ponto de atenção:</b> '+atencaoTxt+'</div>'+
       '<div><b>Ação sugerida:</b> '+acao+'</div>'+
     '</div>'+
+    '<div class="note" style="margin-top:10px"><b>Legenda das cores:</b> '+
+      '<span class="v-ok">&#9679;</span> meta batida · '+
+      '<span class="v-warn">&#9679;</span> próximo da meta · '+
+      '<span class="v-bad">&#9679;</span> fora da meta</div>'+
     '<div class="note" style="margin-top:10px">Leitura automática gerada a partir dos indicadores do período; é indício para investigação, não diagnóstico. TMA ajustado = TA ÷ atendimentos ÷ 6. Percentuais de qualidade sobre as respostas e de transferência sobre o volume.</div>'+
   '</div>';
 }
