@@ -2392,7 +2392,7 @@ function renderTelefonia(){
       '<td class="num">'+(nsPctAg===null?"—":bandaTxt(tBand("ns",nsPctAg),pct(nsPctAg)))+'</td>'+
       '<td class="num">'+num(a.ativas)+'</td><td class="num">'+(a.ativasSeg?fmt(a.ativasSeg):"—")+'</td></tr>';
   }).join("") : '<tr><td colspan="8" class="muted">Sem telefonia registrada no per&iacute;odo para o recorte.</td></tr>';
-  document.getElementById("tAgNota").innerHTML='<b>Cores:</b> verde = dentro da meta &middot; laranja = at&eacute; 10% acima da meta de tempo ou 5 p.p. abaixo da meta de NS &middot; vermelho = fora. NS individual usa como base as chamadas atendidas pelo pr&oacute;prio colaborador; por isso a soma dos individuais (26 de 30 no dia 04/11) n&atilde;o fecha com o NS do setor, que usa as recebidas incluindo abandonadas e expiradas. NS individual dispon&iacute;vel a partir de 01/11/2026.';
+  document.getElementById("tAgNota").innerHTML='<b>Cores:</b> verde = dentro da meta &middot; laranja = at&eacute; 10% acima da meta de tempo ou 5 p.p. abaixo da meta de NS &middot; vermelho = fora. NS individual usa como base as chamadas atendidas pelo pr&oacute;prio colaborador; por isso a soma dos individuais (26 de 30 no dia 04/11) n&atilde;o fecha com o NS do setor, que usa as recebidas incluindo abandonadas e expiradas. NS individual calculado por consulta ao ACD de cada colaborador, dia a dia.';
 
   // ativas
   const el=document.getElementById("tAtivas");
