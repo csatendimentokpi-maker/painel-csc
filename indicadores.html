@@ -1644,6 +1644,8 @@ function renderDetAg(){
   const forte = fortes.length? fortes.slice(0,2).join(" · ") : "sem indicador acima da meta no período";
   const atencaoTxt = atencao.length? atencao.slice(0,2).join(" · ") : "nenhum desvio relevante no período";
 
+  const tv=talkAgente(nome,FIL.de,FIL.ate);
+  const atiW=ativAg(nome).ati||0;
   box.innerHTML='<div class="card dag">'+
     '<div class="head" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
       '<h2>DETALHE DO COLABORADOR · '+esc(nome)+' <small>'+esc(a.turno||"—")+'</small></h2>'+
@@ -1651,38 +1653,39 @@ function renderDetAg(){
     '<div class="note" style="margin-bottom:12px">Situação geral: <b>'+sitTxt+'</b> · Dias na meta: <b>'+(a.dProd? a.dMeta+"/"+a.dProd : "—")+
       '</b> · Acompanhamento: <b>'+st.rot+'</b></div>'+
     '<div class="grid k2">'+
-      '<div class="blk"><h3>Produção</h3>'+
-        ln("Atendimentos receptivos",(function(){
+      '<div class="blk"><h3>Produ&ccedil;&atilde;o</h3>'+
+        ln("WhatsApp &middot; receptivos",(function(){
           const tot=Object.keys(D.agents).reduce(function(sm,n){return sm+(D.agents[n].q||0);},0);
-          return a.q? num(a.q)+" · "+(tot?pct(a.q/tot*100):"—")+" do total recebido" : "—";})())+ '</div>'+
+          return a.q? num(a.q)+" &middot; "+(tot?pct(a.q/tot*100):"—")+" do total recebido" : "—";})())+
+        ln("Telefonia &middot; chamadas atendidas", tv.q? num(tv.q) : "—")+
+        ln("<b>Total</b>",'<b>'+num((a.q||0)+(tv.q||0))+'</b>')+ '</div>'+
       '<div class="blk"><h3>Proatividade</h3>'+
-        ln("Atendimentos ativos",(function(){const t=ativAg(nome);
+        ln("WhatsApp &middot; ativos",(function(){
           const tot=Object.keys(D.agents).reduce(function(sm,n){return sm+ativAg(n).ati;},0);
-          return t.ati? num(t.ati)+" · "+(tot?pct(t.ati/tot*100):"—")+" do total ativo" : "—";})())+ '</div>'+
-      '<div class="blk"><h3>Eficiência</h3>'+
+          return atiW? num(atiW)+" &middot; "+(tot?pct(atiW/tot*100):"—")+" do total ativo" : "—";})())+
+        ln("Telefonia &middot; liga&ccedil;&otilde;es ativas", tv.ativas? num(tv.ativas)+" &middot; "+fmt(tv.ativasSeg)+" de conversa" : "—")+
+        ln("<b>Total</b>",'<b>'+num(atiW+(tv.ativas||0))+'</b>')+ '</div>'+
+      '<div class="blk"><h3>Efici&ecirc;ncia</h3>'+
+        '<div class="small muted" style="font-weight:800;letter-spacing:.04em;margin:2px 0 4px">WHATSAPP &middot; TEXTO</div>'+
         ln("TMA ajustado",bandaTxt(bandaInd("tma",a.tma,mtA),fmt(a.tma))+' <span class="small muted">meta '+fmt(mtA)+'</span>')+
         ln("TMIA",bandaTxt(bandaInd("tmia",a.tmia,META.tmia),fmt(a.tmia))+' <span class="small muted">meta '+fmt(META.tmia)+'</span>')+
         ln("TME",bandaTxt(bandaInd("tme",a.tme,META.tme),fmt(a.tme))+' <span class="small muted">meta '+fmt(META.tme)+'</span>')+
-        ln("NS 20s",bandaTxt(bandaInd("ns",a.ns,META.ns),pct(a.ns))+' <span class="small muted">meta '+pct(META.ns)+'</span>')+ '</div>'+
-      '<div class="blk"><h3>Qualidade</h3>'+
+        ln("NS 20s",bandaTxt(bandaInd("ns",a.ns,META.ns),pct(a.ns))+' <span class="small muted">meta '+pct(META.ns)+'</span>')+
+        '<div class="small muted" style="font-weight:800;letter-spacing:.04em;margin:12px 0 4px">TELEFONIA &middot; VOZ</div>'+
+        (tv.q||tv.ativas
+          ? ln("TMA",(tv.tma===null?"—":bandaTxt(tBand("tma",tv.tma),fmt(tv.tma)))+' <span class="small muted">meta '+fmt(MT.tma)+'</span>')+
+            ln("TME",(tv.tme===null?"—":bandaTxt(tBand("tme",tv.tme),fmt(tv.tme)))+' <span class="small muted">meta '+fmt(MT.tme)+'</span>')+
+            ln("NS 30s",(tv.ns===null?"—":bandaTxt(tBand("ns",tv.ns),pct(tv.ns)))+' <span class="small muted">meta '+MT.ns+'%</span>')
+          : '<div class="small muted" style="font-size:11.5px">sem chamada no per&iacute;odo</div>')+
+        '</div>'+
+      '<div class="blk"><h3>Qualidade &middot; pesquisa de satisfa&ccedil;&atilde;o</h3>'+
         ln("Enviadas para pesquisa",num(env))+
         ln("Respondidas",num(resp))+
-        ln("Participação",(part===null?"—":bandaTxt(bandaInd("part",part,50),pct(part)))+' <span class="small muted">meta ≥ 50%</span>')+
+        ln("Participa&ccedil;&atilde;o",(part===null?"—":bandaTxt(bandaInd("part",part,50),pct(part)))+' <span class="small muted">meta &ge; 50%</span>')+
         '<div style="height:10px"></div>'+
-        ln("Excelente",num(x)+" · "+(exc===null?"—":bandaTxt(bandaInd("exc",exc,80),pct(exc)))+' <span class="small muted">meta ≥ 80%</span>')+
-        ln("Bom",num(b)+" · "+(bom===null?"—":bandaTxt(bandaInd("bom",bom,15),pct(bom)))+' <span class="small muted">meta ≤ 15%</span>')+
-        ln("Precisa melhorar",num(pm)+" · "+(ruim===null?"—":bandaTxt(bandaInd("pm",ruim,5),pct(ruim)))+' <span class="small muted">meta ≤ 5%</span>')+ '</div>'+
-      (function(){
-        const t=talkAgente(nome,FIL.de,FIL.ate);
-        if(!t.q && !t.ativas) return '<div class="blk"><h3>Telefonia (voz)</h3>'+
-          '<div class="ln" style="color:#6c757d;font-size:11.5px">sem chamada no período</div></div>';
-        return '<div class="blk"><h3>Telefonia (voz)</h3>'+
-          ln("Chamadas atendidas",num(t.q))+
-          ln("TMA",(t.tma===null?"—":bandaTxt(tBand("tma",t.tma),fmt(t.tma)))+' <span class="small muted">meta '+fmt(MT.tma)+'</span>')+
-          ln("TME",(t.tme===null?"—":bandaTxt(tBand("tme",t.tme),fmt(t.tme)))+' <span class="small muted">meta '+fmt(MT.tme)+'</span>')+
-          ln("NS 30s",(t.ns===null?"—":bandaTxt(tBand("ns",t.ns),pct(t.ns)))+' <span class="small muted">meta '+MT.ns+'%</span>')+
-          ln("Telefonia ativa",num(t.ativas)+" · "+fmt(t.ativasSeg))+'</div>';
-      })()+
+        ln("Excelente",num(x)+" &middot; "+(exc===null?"—":bandaTxt(bandaInd("exc",exc,80),pct(exc)))+' <span class="small muted">meta &ge; 80%</span>')+
+        ln("Bom",num(b)+" &middot; "+(bom===null?"—":bandaTxt(bandaInd("bom",bom,15),pct(bom)))+' <span class="small muted">meta &le; 15%</span>')+
+        ln("Precisa melhorar",num(pm)+" &middot; "+(ruim===null?"—":bandaTxt(bandaInd("pm",ruim,5),pct(ruim)))+' <span class="small muted">meta &le; 5%</span>')+ '</div>'+
     '</div>'+
     '<div class="tr4">'+
       '<div class="mini"><div class="l">Transferidos</div><div class="v">'+num(tc.tot)+'</div><div class="p">'+(transfPct===null?"—":pct(transfPct)+" do volume")+'</div></div>'+
