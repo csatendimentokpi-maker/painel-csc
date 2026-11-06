@@ -2236,7 +2236,8 @@ function renderTelefonia(){
       const x=o.filas[f];
       return '<tr><td><b>'+esc(f)+'</b></td><td class="num">'+num(x.q)+'</td><td class="num">'+num(x.ok)+'</td>'+
         '<td class="num">'+(x.erro?bandaTxt("bad",num(x.erro)):num(0))+'</td>'+
-        '<td class="num">'+(x.ok?fmt(x.taSeg/x.ok):"—")+'</td><td class="num">'+(x.q?fmt(x.teSeg/x.q):"—")+'</td></tr>';
+        '<td class="num">'+(x.ok?bandaTxt(tBand("tma",x.taSeg/x.ok),fmt(x.taSeg/x.ok)):"—")+'</td>'+
+        '<td class="num">'+(x.q?bandaTxt(tBand("tme",x.teSeg/x.q),fmt(x.teSeg/x.q)):"—")+'</td></tr>';
     }).join("") : '<tr><td colspan="6" class="muted">Sem movimento no per&iacute;odo.</td></tr>';
   } else {
     tb.innerHTML='<tr><td colspan="6" class="muted">Vis&atilde;o por fila dispon&iacute;vel apenas no consolidado do CSC. Selecione &ldquo;Colaborador: todos&rdquo;.</td></tr>';
@@ -2251,12 +2252,12 @@ function renderTelefonia(){
     const nsPctAg = a.nsBase ? a.ns30/a.nsBase*100 : null;
     return '<tr><td><b>'+esc(TNOME[u]||u)+'</b></td><td class="num">'+num(a.q)+'</td>'+
       '<td class="num">'+(o.chamadas? pct(a.q/o.chamadas*100):"—")+'</td>'+
-      '<td class="num">'+(a.q?fmt(a.taSeg/a.q):"—")+'</td>'+
-      '<td class="num">'+(a.q?fmt(a.teSeg/a.q):"—")+'</td>'+
+      '<td class="num">'+(a.q?bandaTxt(tBand("tma",a.taSeg/a.q),fmt(a.taSeg/a.q)):"—")+'</td>'+
+      '<td class="num">'+(a.q?bandaTxt(tBand("tme",a.teSeg/a.q),fmt(a.teSeg/a.q)):"—")+'</td>'+
       '<td class="num">'+(nsPctAg===null?"—":bandaTxt(tBand("ns",nsPctAg),pct(nsPctAg)))+'</td>'+
       '<td class="num">'+num(a.ativas)+'</td><td class="num">'+(a.ativasSeg?fmt(a.ativasSeg):"—")+'</td></tr>';
   }).join("") : '<tr><td colspan="8" class="muted">Sem telefonia registrada no per&iacute;odo para o recorte.</td></tr>';
-  document.getElementById("tAgNota").innerHTML='NS individual usa como base as chamadas atendidas pelo pr&oacute;prio colaborador; por isso a soma dos individuais (26 de 30 no dia 04/11) n&atilde;o fecha com o NS do setor, que usa as recebidas incluindo abandonadas e expiradas. NS individual dispon&iacute;vel a partir de 01/11/2026.';
+  document.getElementById("tAgNota").innerHTML='<b>Cores:</b> verde = dentro da meta &middot; laranja = at&eacute; 10% acima da meta de tempo ou 5 p.p. abaixo da meta de NS &middot; vermelho = fora. NS individual usa como base as chamadas atendidas pelo pr&oacute;prio colaborador; por isso a soma dos individuais (26 de 30 no dia 04/11) n&atilde;o fecha com o NS do setor, que usa as recebidas incluindo abandonadas e expiradas. NS individual dispon&iacute;vel a partir de 01/11/2026.';
 
   // ativas
   const el=document.getElementById("tAtivas");
