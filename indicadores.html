@@ -2078,24 +2078,23 @@ function renderPun(){
       if(atraso<=5) ok++; else { atras++; somaAtraso+=atraso; if(atraso>pior) pior=atraso; }
       ult.push(r);
     });
-    if(!aval.length) return;
-    rows.push({name:nome, n:aval.length, ok:ok, atras:atras, taxa:ok/aval.length*100,
+    rows.push({name:nome, n:aval.length, ok:ok, atras:atras, taxa:aval.length? ok/aval.length*100 : null,
       med:atras? somaAtraso/atras : 0, pior:pior, fora:fora, ult:ult.slice(-4).reverse(),
       esc:(D.agents[nome].esc&&D.agents[nome].esc.entrada)? D.agents[nome].esc.entrada : "—"});
   });
-  rows.sort(function(a,b){ return a.taxa-b.taxa || b.atras-a.atras; });
+  rows.sort(function(a,b){ return (a.taxa===null?101:a.taxa)-(b.taxa===null?101:b.taxa) || b.atras-a.atras; });
   const tot=rows.reduce(function(sm,r){ return sm+r.n; },0);
   const totOk=rows.reduce(function(sm,r){ return sm+r.ok; },0);
   const taxa=tot? totOk/tot*100 : null;
-  const quantos=rows.filter(function(r){ return r.taxa<98; }).length;
+  const quantos=rows.filter(function(r){ return r.taxa!==null && r.taxa<98; }).length;
   document.getElementById("punCards").innerHTML=[
     {l:"Pontualidade do setor",v:(taxa===null?"—":pct(taxa)),p:"meta 98% · "+num(totOk)+" de "+num(tot)+" dias"},
     {l:"Entradas no horário",v:num(totOk),p:"até 5 min após a escala"},
     {l:"Entradas atrasadas",v:num(tot-totOk),p:"acima de 5 min"},
-    {l:"Colaboradores abaixo da meta",v:num(quantos),p:"de "+rows.length+" com registro"}
+    {l:"Colaboradores abaixo da meta",v:num(quantos),p:"de "+rows.filter(function(r){return r.taxa!==null;}).length+" com dias na janela"}
   ].map(function(c){return '<div class="mini"><div class="l">'+c.l+'</div><div class="v">'+c.v+'</div><div class="p">'+c.p+'</div></div>';}).join("");
   document.querySelector("#tblPun tbody").innerHTML=rows.length? rows.map(function(r){
-    const tag = r.taxa>=98? "t-ok" : (r.taxa>=90? "t-warn" : "t-bad");
+    const tag = r.taxa===null? "t-mut" : (r.taxa>=98? "t-ok" : (r.taxa>=90? "t-warn" : "t-bad"));
     const ult=r.ult.map(function(x){
       const dia=String(x[0]).slice(6,8)+"/"+String(x[0]).slice(4,6);
       const hh=String(x[2]).padStart(2,"0")+":"+String(x[3]).padStart(2,"0");
@@ -2105,7 +2104,7 @@ function renderPun(){
     return '<tr><td><b>'+esc(r.name)+'</b></td><td class="muted">'+esc(r.esc)+'</td>'+
       '<td class="num">'+num(r.n)+'</td><td class="num">'+num(r.ok)+'</td><td class="num">'+(r.atras?bandaTxt("bad",num(r.atras)):num(0))+'</td>'+
       '<td class="num muted">'+(r.fora||0)+'</td>'+
-      '<td class="num"><span class="tag '+tag+'">'+pct(r.taxa)+'</span></td>'+
+      '<td class="num"><span class="tag '+tag+'">'+(r.taxa===null?"sem janela":pct(r.taxa))+'</span></td>'+
       '<td class="num">'+(r.atras? r.med.toFixed(0)+" min":"—")+'</td>'+
       '<td class="num">'+(r.pior? r.pior+" min":"—")+'</td><td>'+ult+'</td></tr>';
   }).join("") : '<tr><td colspan="9" class="muted">Sem registro de login no per&iacute;odo.</td></tr>';
