@@ -484,9 +484,9 @@ th.sortable:hover{color:var(--azul)}
       <div class="grid k4" id="punCards" style="margin-bottom:12px"></div>
       <div class="tw stick"><table id="tblPun"><thead><tr>
         <th>Colaborador</th><th>Escala</th><th class="num">Dias avaliados</th><th class="num">No hor&aacute;rio</th><th class="num">Atrasados</th>
-        <th class="num">Pontualidade</th><th class="num">Atraso m&eacute;dio</th><th class="num">Maior atraso</th><th>&Uacute;ltimos registros</th>
+        <th class="num">Pontualidade</th><th class="num">Fora da escala</th><th class="num">Atraso m&eacute;dio</th><th class="num">Maior atraso</th><th>&Uacute;ltimos registros</th>
       </tr></thead><tbody></tbody></table></div>
-      <div class="note" style="margin-top:10px">Entrada no hor&aacute;rio = primeiro login do dia at&eacute; 5 minutos ap&oacute;s o in&iacute;cio da escala (meta de pontualidade 98%). Entradas muito anteriores ou muito posteriores &agrave; escala costumam ser troca de turno ou hora extra, ent&atilde;o valem confirma&ccedil;&atilde;o antes de tratar como atraso.</div>
+      <div class="note" style="margin-top:10px">Entrada no hor&aacute;rio = primeiro login do dia at&eacute; 5 minutos ap&oacute;s o in&iacute;cio da escala (meta de pontualidade 98%). Login entre 3h antes e 2h depois do hor&aacute;rio previsto entra na conta; fora dessa janela fica como &ldquo;fora da escala&rdquo; (troca de turno, hora extra ou escala desatualizada) e n&atilde;o afeta a pontualidade.</div>
     </div>
     <div class="card" style="margin-top:12px">
       <div class="head"><h2>Jornada por colaborador <small>escala, logs e pausas</small></h2></div>
@@ -2069,15 +2069,18 @@ function renderPun(){
   Object.keys(D.agents).forEach(function(nome){
     const regs=(PUN[nome]||[]).filter(function(r){ return r[0]>=lo && r[0]<=hi; });
     if(!regs.length) return;
-    let ok=0, atras=0, somaAtraso=0, pior=0;
-    const ult=[];
+    let ok=0, atras=0, somaAtraso=0, pior=0, fora=0;
+    const ult=[], aval=[];
     regs.forEach(function(r){
       const atraso=r[1];
+      if(atraso<-180 || atraso>120){ fora++; return; }
+      aval.push(r);
       if(atraso<=5) ok++; else { atras++; somaAtraso+=atraso; if(atraso>pior) pior=atraso; }
       ult.push(r);
     });
-    rows.push({name:nome, n:regs.length, ok:ok, atras:atras, taxa:ok/regs.length*100,
-      med:atras? somaAtraso/atras : 0, pior:pior, ult:ult.slice(-4).reverse(),
+    if(!aval.length) return;
+    rows.push({name:nome, n:aval.length, ok:ok, atras:atras, taxa:ok/aval.length*100,
+      med:atras? somaAtraso/atras : 0, pior:pior, fora:fora, ult:ult.slice(-4).reverse(),
       esc:(D.agents[nome].esc&&D.agents[nome].esc.entrada)? D.agents[nome].esc.entrada : "—"});
   });
   rows.sort(function(a,b){ return a.taxa-b.taxa || b.atras-a.atras; });
@@ -2101,6 +2104,7 @@ function renderPun(){
     }).join("");
     return '<tr><td><b>'+esc(r.name)+'</b></td><td class="muted">'+esc(r.esc)+'</td>'+
       '<td class="num">'+num(r.n)+'</td><td class="num">'+num(r.ok)+'</td><td class="num">'+(r.atras?bandaTxt("bad",num(r.atras)):num(0))+'</td>'+
+      '<td class="num muted">'+(r.fora||0)+'</td>'+
       '<td class="num"><span class="tag '+tag+'">'+pct(r.taxa)+'</span></td>'+
       '<td class="num">'+(r.atras? r.med.toFixed(0)+" min":"—")+'</td>'+
       '<td class="num">'+(r.pior? r.pior+" min":"—")+'</td><td>'+ult+'</td></tr>';
