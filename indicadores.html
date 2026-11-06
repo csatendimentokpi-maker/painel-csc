@@ -1086,6 +1086,10 @@ function alertasOrdenados(){
   const rank={"crítico":0,"alto":1,"moderado":2};
   return gerarAlertas(D,DP).slice().sort(function(a,b){ return (rank[a.g]||3)-(rank[b.g]||3); });
 }
+function dtLbl(yyyymmdd){
+  const v=String(yyyymmdd);
+  return v.slice(6,8)+"/"+v.slice(4,6);
+}
 function chartEvol(){
   const m=METRICA, cfg=METS[m];
   if(charts.evol){ charts.evol.destroy(); charts.evol=null; }
@@ -1093,7 +1097,12 @@ function chartEvol(){
   const at=D.dias.map(function(d){ return metVal(d,m); });
   const pr=DP.dias.map(function(d){ return metVal(d,m); });
   const n=Math.max(at.length,pr.length);
-  const lb=[]; for(let i=0;i<n;i++) lb.push("D"+(i+1));
+  const lb=[];
+  for(let i=0;i<n;i++){
+    const a=D.dias[i], b=DP.dias[i];
+    const d=(a&&a.i)||(b&&b.i);
+    lb.push(d? dtLbl(d) : "D"+(i+1));
+  }
   const metaV=cfg.meta(D);
   const ds=[{label:"Período atual",data:at,borderColor:cor,backgroundColor:m==="ns"?"rgba(41,98,172,.10)":"transparent",fill:m==="ns",tension:.3,pointRadius:2,borderWidth:2,pointBackgroundColor:cor}];
   if(pr.length) ds.push({label:"Período anterior",data:pr,borderColor:C.amar,backgroundColor:"transparent",borderDash:[5,4],tension:.3,pointRadius:0,borderWidth:1.6,fill:false});
@@ -2160,6 +2169,11 @@ function renderPun(){
 let MTALK="ns", MCHAT="ns";
 const METS_TALK={ns:{n:"NS 30s",pct:1},tme:{n:"TME"},tma:{n:"TMA"},ch:{n:"Chamadas recebidas",vol:1},ate:{n:"Atendidas",vol:1},exp:{n:"Expiradas",vol:1}};
 
+function talkDias(deIso,ateIso){
+  const lo=iso2i(deIso), hi=iso2i(ateIso), out=[];
+  Object.keys(TALK).forEach(function(d){ const i=+d.replace(/-/g,""); if(i>=lo&&i<=hi) out.push(d); });
+  return out.sort();
+}
 function talkSerie(deIso,ateIso,k){
   const lo=iso2i(deIso), hi=iso2i(ateIso), out=[];
   Object.keys(TALK).forEach(function(d){
@@ -2176,12 +2190,10 @@ function talkSerie(deIso,ateIso,k){
   return out;
 }
 
-function desenhaSerie(id, m, at, pr, metaV, legendEl, subEl, metricas, prevDe, prevAte){
+function desenhaSerie(id, m, at, pr, metaV, legendEl, subEl, metricas, prevDe, prevAte, lb){
   const cfg=metricas[m];
   if(charts[id]){ charts[id].destroy(); charts[id]=null; }
   const cor = m==="ns"? C.azul : (m==="tme"? C.esc : (m==="tma"? "#7c5cbf" : C.cinza));
-  const n=Math.max(at.length,pr.length);
-  const lb=[]; for(let i=0;i<n;i++) lb.push("D"+(i+1));
   const ds=[{label:"Período atual",data:at,borderColor:cor,backgroundColor:m==="ns"?"rgba(41,98,172,.10)":"transparent",
     fill:m==="ns",tension:.3,pointRadius:2,borderWidth:2,pointBackgroundColor:cor}];
   if(pr.length) ds.push({label:"Período anterior",data:pr,borderColor:C.amar,backgroundColor:"transparent",
@@ -2208,16 +2220,25 @@ function desenhaSerie(id, m, at, pr, metaV, legendEl, subEl, metricas, prevDe, p
 function chartChat(){
   const cfg=METS, at=D.dias.map(function(d){ return metVal(d,MCHAT); });
   const pr=DP.dias.map(function(d){ return metVal(d,MCHAT); });
+  const n=Math.max(at.length,pr.length), lb=[];
+  for(let i=0;i<n;i++){
+    const a=D.dias[i], b=DP.dias[i];
+    const d=(a&&a.i)||(b&&b.i);
+    lb.push(d? dtLbl(d) : "D"+(i+1));
+  }
   desenhaSerie("chChat",MCHAT,at,pr,cfg[MCHAT].meta(D),document.getElementById("evolChatLegenda"),
-    document.getElementById("evolChatSub"),cfg,DP.de,DP.ate);
+    document.getElementById("evolChatSub"),cfg,DP.de,DP.ate,lb);
 }
 
 function chartTalk(){
   const pr=prevRange(FIL.de,FIL.ate);
   const at=talkSerie(FIL.de,FIL.ate,MTALK), ps=talkSerie(pr.de,pr.ate,MTALK);
   const metaV = MTALK==="ns"? 98 : (MTALK==="tme"? 30 : (MTALK==="tma"? 359 : null));
+  const lbt=talkDias(FIL.de,FIL.ate), lbp=talkDias(pr.de,pr.ate);
+  const n=Math.max(lbt.length,lbp.length), lb=[];
+  for(let i=0;i<n;i++){ const d=lbt[i]||lbp[i]; lb.push(d? dtLbl(String(d).replace(/-/g,"")) : "D"+(i+1)); }
   desenhaSerie("chTalk",MTALK,at,ps,metaV,document.getElementById("evolTalkLegenda"),
-    document.getElementById("evolTalkSub"),METS_TALK,pr.de,pr.ate);
+    document.getElementById("evolTalkSub"),METS_TALK,pr.de,pr.ate,lb);
 }
 
 /* ---------- telefonia (Talk) ---------- */
