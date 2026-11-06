@@ -306,6 +306,21 @@ th.sortable:hover{color:var(--azul)}
     <div class="grid k4" id="cCards"></div>
 
     <div class="card" style="margin-top:12px">
+      <div class="head">
+        <h2>Evolu&ccedil;&atilde;o do indicador <small id="evolChatSub"></small></h2>
+        <div class="seg" id="segChat">
+          <button data-cm="ns" class="on">NS</button>
+          <button data-cm="tme">TME</button>
+          <button data-cm="tma">TMA</button>
+          <button data-cm="tmia">TMIA</button>
+          <button data-cm="q">Atendimentos</button>
+        </div>
+      </div>
+      <div class="chart"><canvas id="chChat"></canvas></div>
+      <div class="note" id="evolChatLegenda" style="margin-top:6px"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
       <div class="head"><h2>Por fila <small>filas do CSC no texto</small></h2></div>
       <div class="tw"><table id="tblCFila"><thead><tr>
         <th>Fila</th><th class="num">Atendimentos</th><th class="num">NS 20s</th><th class="num">TME</th><th class="num">TMA ajustado</th><th class="num">TMIA</th>
@@ -451,6 +466,22 @@ th.sortable:hover{color:var(--azul)}
   <section class="tab" id="tab-telefonia">
     <div class="note" id="tnota" style="margin-bottom:12px"></div>
     <div class="grid k4" id="tkpi"></div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="head">
+        <h2>Evolu&ccedil;&atilde;o do indicador <small id="evolTalkSub"></small></h2>
+        <div class="seg" id="segTalk">
+          <button data-tm="ns" class="on">NS</button>
+          <button data-tm="tme">TME</button>
+          <button data-tm="tma">TMA</button>
+          <button data-tm="ch">Recebidas</button>
+          <button data-tm="ate">Atendidas</button>
+          <button data-tm="exp">Expiradas</button>
+        </div>
+      </div>
+      <div class="chart"><canvas id="chTalk"></canvas></div>
+      <div class="note" id="evolTalkLegenda" style="margin-top:6px"></div>
+    </div>
 
     <div class="card" style="margin-top:12px">
       <div class="head"><h2>Por fila <small>filas do CSC na telefonia</small></h2></div>
@@ -1979,6 +2010,20 @@ document.getElementById("aplicar").addEventListener("click",aplicar);
 document.querySelectorAll("#tabs button").forEach(function(b){
   b.addEventListener("click",function(){ setTab(b.dataset.t); });
 });
+document.querySelectorAll("#segTalk button").forEach(function(b){
+  b.addEventListener("click",function(){
+    MTALK=b.dataset.tm;
+    document.querySelectorAll("#segTalk button").forEach(function(x){ x.classList.toggle("on", x===b); });
+    if(TAB==="telefonia") chartTalk(); else dirty.telefonia=1;
+  });
+});
+document.querySelectorAll("#segChat button").forEach(function(b){
+  b.addEventListener("click",function(){
+    MCHAT=b.dataset.cm;
+    document.querySelectorAll("#segChat button").forEach(function(x){ x.classList.toggle("on", x===b); });
+    if(TAB==="chat") chartChat(); else dirty.chat=1;
+  });
+});
 document.querySelectorAll("#segMetrica button").forEach(function(b){
   b.addEventListener("click",function(){
     METRICA=b.dataset.m;
@@ -2016,6 +2061,7 @@ function renderChat(){
     nota.textContent="";
     return;
   }
+  try{ chartChat(); }catch(e){}
   const ns=T.q? T.a20/T.q*100 : null, tme=TME(T), tma=T.q? T.ta/T.q/6 : null, tmia=T.q? T.tm/T.q : null;
   const metaTma=D.cei? META.tmaCEI : META.tma;
   nota.innerHTML='<b>Chat / WhatsApp (texto)</b> &middot; fonte Relat&oacute;rio Estat&iacute;stico da Matrix &middot; '+i2br(iso2i(FIL.de))+' a '+i2br(iso2i(FIL.ate))+' &middot; '+D.dias.length+' dia(s) com produ&ccedil;&atilde;o &middot; TME na janela 08:00&ndash;23:59; volume, NS, TMA e TMIA em 00:00&ndash;23:59 &middot; sem autom&aacute;ticos';
@@ -2108,6 +2154,70 @@ function renderPun(){
       '<td class="num">'+(r.atras? r.med.toFixed(0)+" min":"—")+'</td>'+
       '<td class="num">'+(r.pior? r.pior+" min":"—")+'</td><td>'+ult+'</td></tr>';
   }).join("") : '<tr><td colspan="9" class="muted">Sem registro de login no per&iacute;odo.</td></tr>';
+}
+
+/* ---------- evolução: chat e telefonia ---------- */
+let MTALK="ns", MCHAT="ns";
+const METS_TALK={ns:{n:"NS 30s",pct:1},tme:{n:"TME"},tma:{n:"TMA"},ch:{n:"Chamadas recebidas",vol:1},ate:{n:"Atendidas",vol:1},exp:{n:"Expiradas",vol:1}};
+
+function talkSerie(deIso,ateIso,k){
+  const lo=iso2i(deIso), hi=iso2i(ateIso), out=[];
+  Object.keys(TALK).forEach(function(d){
+    const i=+d.replace(/-/g,"");
+    if(i<lo||i>hi) return;
+    const x=TALK[d];
+    if(k==="ns") out.push(x.chamadas? x.ns30/x.chamadas*100 : null);
+    else if(k==="tme") out.push(x.chamadas? x.tme_seg : null);
+    else if(k==="tma") out.push(x.atendidas? x.tma_seg : null);
+    else if(k==="ch") out.push(x.chamadas||0);
+    else if(k==="ate") out.push(x.atendidas||0);
+    else out.push(x.expiradas||0);
+  });
+  return out;
+}
+
+function desenhaSerie(id, m, at, pr, metaV, legendEl, subEl, metricas, prevDe, prevAte){
+  const cfg=metricas[m];
+  if(charts[id]){ charts[id].destroy(); charts[id]=null; }
+  const cor = m==="ns"? C.azul : (m==="tme"? C.esc : (m==="tma"? "#7c5cbf" : C.cinza));
+  const n=Math.max(at.length,pr.length);
+  const lb=[]; for(let i=0;i<n;i++) lb.push("D"+(i+1));
+  const ds=[{label:"Período atual",data:at,borderColor:cor,backgroundColor:m==="ns"?"rgba(41,98,172,.10)":"transparent",
+    fill:m==="ns",tension:.3,pointRadius:2,borderWidth:2,pointBackgroundColor:cor}];
+  if(pr.length) ds.push({label:"Período anterior",data:pr,borderColor:C.amar,backgroundColor:"transparent",
+    borderDash:[5,4],tension:.3,pointRadius:0,borderWidth:1.6,fill:false});
+  if(metaV!==null&&metaV!==undefined) ds.push({label:"Meta",data:lb.map(function(){return metaV;}),
+    borderColor:"#c8d2df",borderDash:[3,3],pointRadius:0,borderWidth:1.2,fill:false});
+  charts[id]=new Chart(document.getElementById(id),{type:"line",data:{labels:lb,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{labels:{boxWidth:10,font:{size:10.5},color:"#6b7787"},padding:12},
+        tooltip:{callbacks:{label:function(c){
+          const v=c.parsed.y;
+          if(v===null||v===undefined) return c.dataset.label+": —";
+          return c.dataset.label+": "+(cfg.pct? pct(v) : (cfg.vol? num(v) : fmt(v)));
+        }}}},
+      scales:{y:{grid:{color:C.line},border:{display:false},ticks:{font:{size:10},color:"#6b7787",
+          callback:function(v){ return cfg.pct? v+"%" : (cfg.vol? v : fmt(v)); }},
+        suggestedMin: cfg.pct? 40 : undefined},
+        x:{grid:{display:false},border:{display:false},ticks:{font:{size:10},color:"#9aa6b5",maxRotation:0,autoSkip:true}}}}});
+  if(subEl) subEl.textContent=cfg.n+" · diário";
+  if(legendEl) legendEl.textContent=(pr.length? "Comparação com "+i2br(iso2i(prevDe))+" a "+i2br(iso2i(prevAte)) : "Sem base comparável para o período anterior")+
+    " · série diária do canal.";
+}
+
+function chartChat(){
+  const cfg=METS, at=D.dias.map(function(d){ return metVal(d,MCHAT); });
+  const pr=DP.dias.map(function(d){ return metVal(d,MCHAT); });
+  desenhaSerie("chChat",MCHAT,at,pr,cfg[MCHAT].meta(D),document.getElementById("evolChatLegenda"),
+    document.getElementById("evolChatSub"),cfg,DP.de,DP.ate);
+}
+
+function chartTalk(){
+  const pr=prevRange(FIL.de,FIL.ate);
+  const at=talkSerie(FIL.de,FIL.ate,MTALK), ps=talkSerie(pr.de,pr.ate,MTALK);
+  const metaV = MTALK==="ns"? 98 : (MTALK==="tme"? 30 : (MTALK==="tma"? 359 : null));
+  desenhaSerie("chTalk",MTALK,at,ps,metaV,document.getElementById("evolTalkLegenda"),
+    document.getElementById("evolTalkSub"),METS_TALK,pr.de,pr.ate);
 }
 
 /* ---------- telefonia (Talk) ---------- */
@@ -2215,6 +2325,7 @@ function renderTelefonia(){
   const atdPct = o.chamadas ? o.atendidas/o.chamadas*100 : null;
   const abPct = o.modo==="csc" && o.chamadas ? o.abandonadas/o.chamadas*100 : null;
   const exPct = o.modo==="csc" && o.chamadas ? o.expiradas/o.chamadas*100 : null;
+  try{ chartTalk(); }catch(e){}
   nota.innerHTML = (o.modo==="csc"
       ? '<b>CSC na telefonia</b> &middot; SUPORTE T&Eacute;CNICO, FINANCEIRO, COMERCIAL e QUALIDADE 30 DIAS &middot; '+i2br(iso2i(FIL.de))+' a '+i2br(iso2i(FIL.ate))+' &middot; '+o.dias+' dia(s) com base &middot; chamadas recebidas na fila (ACD)'
       : '<b>Colaborador:</b> '+esc(FIL.agente)+' &middot; '+i2br(iso2i(FIL.de))+' a '+i2br(iso2i(FIL.ate))+' &middot; as chamadas mostradas s&atilde;o as atendidas por ele; abandonadas e expiradas n&atilde;o s&atilde;o atribu&iacute;veis a uma pessoa &middot; '+o.dias+' dia(s) com base');
