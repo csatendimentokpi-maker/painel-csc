@@ -1,0 +1,1938 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Escalas CSC — Arroba Banda Larga</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+<style>
+:root{
+  --azul:#00439C; --azul-esc:#00306F; --azul-clr:#E8EFFA;
+  --amarelo:#FBB900; --amarelo-clr:#FFF6DC;
+  --branco:#FFFFFF; --cinza:#F4F5FA; --cinza-bd:#E3E6EF; --txt:#313131; --txt-clr:#6B7280;
+  --verde:#198754; --vermelho:#DC3545; --laranja:#FD7E14;
+  --r:12px; --sh:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--cinza);color:var(--txt);font-size:14px;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;font-weight:700}
+a{color:var(--azul)}
+button{font-family:inherit}
+/* ---------- topo ---------- */
+.topo{background:var(--azul);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:40;box-shadow:0 2px 10px rgba(0,48,111,.25)}
+.marca{display:flex;align-items:center;gap:10px}
+.logo{width:38px;height:38px;border-radius:10px;background:var(--amarelo);display:grid;place-items:center;font-weight:800;color:var(--azul);font-size:15px;letter-spacing:-.5px}
+.marca small{display:block;font-weight:400;opacity:.78;font-size:11px;letter-spacing:.4px;text-transform:uppercase}
+.marca strong{font-size:15px;letter-spacing:.2px}
+.topo .dir{margin-left:auto;display:flex;align-items:center;gap:8px}
+.topo .who{font-size:12px;opacity:.85}
+/* ---------- abas ---------- */
+.abas{background:#fff;border-bottom:1px solid var(--cinza-bd);padding:0 12px;display:flex;gap:2px;overflow-x:auto;position:sticky;top:66px;z-index:30}
+.abas::-webkit-scrollbar{height:0}
+.aba{border:0;background:none;padding:13px 14px;font-size:13px;font-weight:600;color:var(--txt-clr);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.aba:hover{color:var(--azul);background:var(--azul-clr)}
+.aba.on{color:var(--azul);border-bottom-color:var(--amarelo)}
+/* ---------- layout ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 70px}
+.view{display:none}
+.view.on{display:block}
+.card{background:#fff;border:1px solid var(--cinza-bd);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:16px;overflow:hidden}
+.card>.hd{padding:13px 16px;border-bottom:1px solid var(--cinza-bd);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.card>.hd h3{font-size:14px;letter-spacing:.2px}
+.card>.hd .acoes{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.card>.bd{padding:16px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:900px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.g2,.g3,.g4{grid-template-columns:1fr}.wrap{padding:14px 10px 60px}.abas{top:auto;position:static}}
+/* ---------- kpi ---------- */
+.kpi{background:#fff;border:1px solid var(--cinza-bd);border-radius:var(--r);padding:14px;box-shadow:var(--sh);position:relative;overflow:hidden}
+.kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--azul)}
+.kpi.am:before{background:var(--amarelo)}
+.kpi.vd:before{background:var(--verde)}
+.kpi.vm:before{background:var(--vermelho)}
+.kpi .rot{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--txt-clr);font-weight:700}
+.kpi .val{font-size:26px;font-weight:800;color:var(--azul);margin-top:5px;line-height:1.1}
+.kpi .sub{font-size:12px;color:var(--txt-clr);margin-top:4px}
+/* ---------- botoes ---------- */
+.btn{border:1px solid var(--cinza-bd);background:#fff;color:var(--txt);border-radius:9px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.btn:hover{border-color:var(--azul);color:var(--azul);background:var(--azul-clr)}
+.btn.pri{background:var(--azul);border-color:var(--azul);color:#fff}
+.btn.pri:hover{background:var(--azul-esc);border-color:var(--azul-esc);color:#fff}
+.btn.am{background:var(--amarelo);border-color:var(--amarelo);color:#3A2C00}
+.btn.am:hover{filter:brightness(.95);color:#3A2C00}
+.btn.dg{color:var(--vermelho);border-color:#F3C4CA}
+.btn.dg:hover{background:#FDECEE;border-color:var(--vermelho);color:var(--vermelho)}
+.btn.sm{padding:6px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+/* ---------- form ---------- */
+input[type=text],input[type=date],input[type=time],select,textarea{width:100%;padding:9px 11px;border:1px solid var(--cinza-bd);border-radius:9px;font-size:13px;font-family:inherit;background:#fff;color:var(--txt)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--azul-clr);border-color:var(--azul)}
+label.f{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt-clr);margin-bottom:5px}
+.campo{margin-bottom:12px}
+/* ---------- tabela ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--azul);color:#fff;text-align:left;padding:10px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--cinza-bd);vertical-align:middle}
+tbody tr:nth-child(even){background:#FAFBFE}
+tbody tr:hover{background:var(--azul-clr)}
+.tbl-scroll{overflow-x:auto}
+/* ---------- badge ---------- */
+.bg{display:inline-block;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
+.bg.az{background:var(--azul-clr);color:var(--azul)}
+.bg.am{background:var(--amarelo-clr);color:#8A6400}
+.bg.vd{background:#E7F5EE;color:var(--verde)}
+.bg.vm{background:#FDECEE;color:var(--vermelho)}
+.bg.cz{background:#EEF0F5;color:var(--txt-clr)}
+.bg.lr{background:#FFF1E5;color:#B35B00}
+/* ---------- avatar ---------- */
+.av{width:52px;height:52px;border-radius:50%;overflow:hidden;background:var(--azul-clr);display:grid;place-items:center;flex:0 0 auto;border:2px solid #fff;box-shadow:0 0 0 1px var(--cinza-bd)}
+.av img{width:100%;height:100%;object-fit:cover;object-position:center 30%}
+.av b{color:var(--azul);font-size:16px;font-weight:800;letter-spacing:.5px}
+.av.lg{width:76px;height:76px}
+.av.sm{width:34px;height:34px}
+.av.sm b{font-size:12px}
+/* ---------- pessoas ---------- */
+.slots{display:flex;flex-wrap:wrap;gap:12px}
+.pessoa{display:flex;flex-direction:column;align-items:center;gap:6px;width:78px;text-align:center}
+.pessoa .nm{font-size:11px;font-weight:600;line-height:1.2;color:var(--txt);word-break:break-word}
+/* ---------- informativo ---------- */
+.infor{background:#fff;border-radius:var(--r);overflow:hidden;border:1px solid var(--cinza-bd)}
+.infor .capa{background:var(--azul);color:#fff;padding:26px 22px;text-align:center}
+.infor .capa .sub{font-size:11px;letter-spacing:2.4px;text-transform:uppercase;opacity:.8;font-weight:700}
+.infor .capa h2{font-size:23px;margin-top:8px;letter-spacing:.3px}
+.infor .capa .faixa{width:78px;height:4px;background:var(--amarelo);border-radius:99px;margin:12px auto 0}
+.infor .corpo{padding:18px}
+.bloco{border:1px solid var(--cinza-bd);border-radius:10px;overflow:hidden;margin-bottom:14px;break-inside:avoid}
+.bloco .bt{background:var(--azul);color:#fff;padding:9px 14px;font-size:12px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.bloco .bt .dta{margin-left:auto;font-size:10px;opacity:.85;letter-spacing:.5px}
+.faixa-h{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--cinza-bd);flex-wrap:wrap}
+.faixa-h:last-child{border-bottom:0}
+.faixa-h .hr{background:var(--amarelo);color:#3A2C00;font-weight:800;font-size:12px;padding:5px 11px;border-radius:7px;white-space:nowrap;letter-spacing:.4px}
+.bloco .vazio{padding:14px;color:var(--txt-clr);font-size:13px}
+/* ---------- diversos ---------- */
+.aviso{border-radius:10px;padding:11px 14px;font-size:13px;display:flex;gap:9px;align-items:flex-start;margin-bottom:14px}
+.aviso.i{background:var(--azul-clr);color:#00306F}
+.aviso.w{background:var(--amarelo-clr);color:#6B4E00}
+.aviso.e{background:#FDECEE;color:#8A1F2B}
+.aviso.s{background:#E7F5EE;color:#0F5132}
+.muted{color:var(--txt-clr)}
+.small{font-size:12px}
+.mini{font-size:11px}
+.list{display:flex;flex-direction:column;gap:9px}
+.li{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--cinza-bd);border-radius:10px;background:#fff}
+.li .nm{font-weight:600;font-size:13px}
+.li .dir{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.sel{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.sel .campo{margin-bottom:0;min-width:150px;flex:1}
+.hr-sep{height:1px;background:var(--cinza-bd);margin:14px 0}
+.drop{border:2px dashed var(--cinza-bd);border-radius:12px;padding:30px 18px;text-align:center;background:#fff;cursor:pointer;transition:.15s}
+.drop:hover,.drop.over{border-color:var(--azul);background:var(--azul-clr)}
+.drop b{color:var(--azul)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#111;color:#fff;padding:11px 20px;border-radius:10px;font-size:13px;z-index:200;opacity:0;pointer-events:none;transition:.25s;max-width:90vw;text-align:center}
+.toast.on{opacity:1;bottom:34px}
+.modal{position:fixed;inset:0;background:rgba(16,24,40,.55);display:none;place-items:center;z-index:150;padding:16px}
+.modal.on{display:grid}
+.modal .box{background:#fff;border-radius:14px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:22px}
+.modal h3{margin-bottom:14px;font-size:16px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal .dh{font-size:10px;text-align:center;color:var(--txt-clr);font-weight:800;text-transform:uppercase;padding:4px}
+.cal .d{border:1px solid var(--cinza-bd);border-radius:8px;padding:6px 3px;text-align:center;cursor:pointer;min-height:46px;background:#fff;position:relative;transition:.12s}
+.cal .d:hover{border-color:var(--azul)}
+.cal .d .n{font-weight:700;font-size:13px}
+.cal .d .t{font-size:9px;color:var(--verde);font-weight:700}
+.cal .d.fd{background:#FBFCFE}
+.cal .d.hoje{border-color:var(--azul);box-shadow:0 0 0 2px var(--azul-clr)}
+.cal .d.sel{background:var(--azul);color:#fff}
+.cal .d.sel .t{color:var(--amarelo)}
+.cal .d.vaz{visibility:hidden}
+.chip{display:inline-flex;align-items:center;gap:5px;background:var(--cinza);border:1px solid var(--cinza-bd);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:600}
+@media print{
+  body{background:#fff}
+  .topo,.abas,.no-print,.toast{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .infor{border:0}
+  .bloco{break-inside:avoid;page-break-inside:avoid}
+  .card{box-shadow:none;border:0}
+  #publog{display:block!important}
+  .corpo{padding:0}
+  @page{size:A4;margin:12mm}
+}
+</style>
+</head>
+<body>
+
+<div class="topo no-print">
+  <div class="marca">
+    <div class="logo">AB</div>
+    <div>
+      <strong>Painel de Escalas CSC</strong>
+      <small>Arroba Banda Larga</small>
+    </div>
+  </div>
+  <div class="dir">
+    <span class="who" id="topoUser">Administrador</span>
+    <button class="btn sm am" onclick="App.exportarTudo()">Backup JSON</button>
+  </div>
+</div>
+
+<nav class="abas no-print" id="abas">
+  <button class="aba on" data-v="dashboard">Painel</button>
+  <button class="aba" data-v="importar">Importar escala</button>
+  <button class="aba" data-v="conferencia">Conferência <span id="badgeConf"></span></button>
+  <button class="aba" data-v="colaboradores">Colaboradores</button>
+  <button class="aba" data-v="informativo">Informativo</button>
+  <button class="aba" data-v="sobreaviso">Sobreaviso e feriados</button>
+  <button class="aba" data-v="publicacoes">Publicações</button>
+  <button class="aba" data-v="historico">Histórico</button>
+</nav>
+
+<div class="wrap">
+  <div class="view on" id="view-dashboard"></div>
+  <div class="view" id="view-importar"></div>
+  <div class="view" id="view-conferencia"></div>
+  <div class="view" id="view-colaboradores"></div>
+  <div class="view" id="view-informativo"></div>
+  <div class="view" id="view-sobreaviso"></div>
+  <div class="view" id="view-publicacoes"></div>
+  <div class="view" id="view-historico"></div>
+</div>
+
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+/* =========================================================================
+   PAINEL DE ESCALAS CSC — ARROBA BANDA LARGA
+   Núcleo: armazenamento, utilidades, leitura de planilhas
+   ========================================================================= */
+const CHAVE = 'painel_escalas_csc_v1';
+const SETORES = ['CSC','VENDAS','MANUTENCAO','SOBREAVISO','QUALIDADE','FINANCEIRO'];
+const SETOR_NOME = {CSC:'CSC — Atendimento',VENDAS:'Vendas',MANUTENCAO:'Manutenção',
+  SOBREAVISO:'Sobreaviso de Rede',QUALIDADE:'Qualidade',FINANCEIRO:'Financeiro'};
+const SITUACOES = ['TRABALHO','FOLGA','FERIAS','ATESTADO','FOLGA_FERIADO','TROCA','SUBSTITUICAO','AUSENCIA'];
+const SIT_NOME = {TRABALHO:'Trabalho',FOLGA:'Folga',FERIAS:'Férias',ATESTADO:'Atestado',
+  FOLGA_FERIADO:'Folga feriado',TROCA:'Troca',SUBSTITUICAO:'Substituição',AUSENCIA:'Ausência'};
+
+var DB = null;
+/* atalho global para mensagens (usado também fora do objeto App) */
+function toast(msg){ if(window.App && typeof App.toast === 'function') App.toast(msg); }
+
+/* ------------------------------ utilidades ------------------------------ */
+const uid = () => Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4);
+const agora = () => new Date().toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'});
+const hojeISO = () => new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
+
+function norm(s){
+  return String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/\s+/g,' ').trim();
+}
+function esc(s){
+  return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function iniciais(nome){
+  const p = String(nome||'').trim().split(/\s+/).filter(Boolean);
+  if(!p.length) return '?';
+  return (p[0][0] + (p.length>1 ? p[p.length-1][0] : '')).toUpperCase();
+}
+function isoParaBR(iso){
+  if(!iso) return '';
+  const [a,m,d] = String(iso).slice(0,10).split('-');
+  return (d&&m&&a) ? `${d}/${m}/${a}` : String(iso);
+}
+function brParaISO(br){
+  if(!br) return '';
+  const s = String(br).trim();
+  let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if(m){ let a = m[3].length===2 ? '20'+m[3] : m[3]; return `${a}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; }
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  // serial do Excel
+  if(/^\d{5}$/.test(s)){ return serialParaISO(Number(s)); }
+  return '';
+}
+function serialParaISO(serial){
+  const base = Date.UTC(1899,11,30);
+  const d = new Date(base + serial*86400000);
+  return d.toISOString().slice(0,10);
+}
+function dataDeQualquer(v){
+  if(v instanceof Date && !isNaN(v)) return v.toISOString().slice(0,10);
+  if(typeof v === 'number') return serialParaISO(v);
+  return brParaISO(v);
+}
+const DIAS_SEM = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+const DIAS_CUR = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+function diaSemana(iso){ const d = new Date(iso+'T12:00:00'); return d.getDay(); }
+function nomeDia(iso){ return DIAS_SEM[diaSemana(iso)]; }
+function addDias(iso, n){
+  const d = new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+function segDaSemana(iso){
+  const w = diaSemana(iso);
+  return addDias(iso, -(w===0?6:w-1));
+}
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+/* ------------------------------ horários ------------------------------ */
+/* Aceita: 08h-13h | 08:00/13:00 | 08H ÀS 13H | 18h-00h | 12-16 | 18h30-23h30 */
+function parseHorario(txt){
+  const raw = String(txt??'').trim();
+  if(!raw) return null;
+  const t = norm(raw).toUpperCase();
+  if(/^(folga|folgas|descanso|off|-$|—)?$/.test(t) && !/\d/.test(t)) return null;
+  const toks = raw.match(/\d{1,2}(?:[:hH]\d{2})?/g);
+  if(!toks || toks.length < 2) return null;
+  const hm = s => {
+    const m = String(s).match(/^(\d{1,2})(?:[:hH](\d{2}))?$/);
+    if(!m) return null;
+    let h = parseInt(m[1],10); const mi = m[2] ? parseInt(m[2],10) : 0;
+    if(h>23 || mi>59) return null;
+    return {h, mi, txt: String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0')};
+  };
+  const a = hm(toks[0]), b = hm(toks[1]);
+  if(!a || !b) return null;
+  return {ini:a.txt, fim:b.txt, iniMin:a.h*60+a.mi, fimMin:b.h*60+b.mi};
+}
+function situacaoDe(txt){
+  const t = norm(txt).toUpperCase();
+  if(/^$/.test(t)) return null;
+  if(/\bFOLGA\b/.test(t) && /FERIADO/.test(t)) return 'FOLGA_FERIADO';
+  if(/FOLGA|DESCANSO|\bOFF\b/.test(t)) return 'FOLGA';
+  if(/FERIAS/.test(t)) return 'FERIAS';
+  if(/ATESTADO|LICENCA MEDICA|MEDICO/.test(t)) return 'ATESTADO';
+  if(/TROCA/.test(t)) return 'TROCA';
+  if(/SUBSTITU/.test(t)) return 'SUBSTITUICAO';
+  if(/AUSENCIA|FALTOU|FALTA/.test(t)) return 'AUSENCIA';
+  if(/^(SIM|S|X|1)$/.test(t)) return 'TRABALHO';
+  if(/^(NAO|N)$/.test(t)) return null;
+  if(/TRABALHO|EXPEDIENTE|PLANTAO/.test(t)) return 'TRABALHO';
+  return null;
+}
+/* Separa vários nomes na mesma célula */
+function separarNomes(txt){
+  let s = String(txt??'').trim();
+  if(!s) return [];
+  s = s.replace(/\s+e\s+(?=[A-ZÀ-Ú])/gu, ', ');      // "Kayke e Camily"
+  return s.split(/[,;\/|\n]+/).map(x=>x.trim()).filter(x=>{
+    if(!x) return false;
+    const n = norm(x).toUpperCase();
+    if(/^(SIM|NAO|S|N|X|1|0|TRABALHO|FOLGA|FERIAS|ATESTADO|EXPEDIENTE)$/.test(n)) return false;
+    return /[A-Za-zÀ-ÿ]{2,}/.test(x);
+  });
+}
+
+/* ------------------------------ persistência ------------------------------ */
+function dbVazio(){
+  return {versao:1, colaboradores:[], escalas:[], sobreavisos:[], feriados:[],
+    ausencias:[], publicacoes:[], importacoes:[], pendentes:[], historico:[],
+    config:{usuario:'Administrador', perfil:'Administrador'}, seed:false};
+}
+function carregar(){
+  try{
+    const raw = localStorage.getItem(CHAVE);
+    DB = raw ? JSON.parse(raw) : dbVazio();
+  }catch(e){ DB = dbVazio(); }
+  if(!DB.colaboradores) DB.colaboradores=[];
+  if(!DB.escalas) DB.escalas=[];
+  if(!DB.pendentes) DB.pendentes=[];
+  if(!DB.historico) DB.historico=[];
+  if(!DB.publicacoes) DB.publicacoes=[];
+  if(!DB.importacoes) DB.importacoes=[];
+  if(!DB.sobreavisos) DB.sobreavisos=[];
+  if(!DB.feriados) DB.feriados=[];
+  if(!DB.ausencias) DB.ausencias=[];
+  if(!DB.config) DB.config={usuario:'Administrador',perfil:'Administrador'};
+  if(!DB.seed){ semearColaboradores(); DB.seed = true; }
+  salvar();
+}
+function salvar(){
+  try{ localStorage.setItem(CHAVE, JSON.stringify(DB)); }
+  catch(e){ toast('Não foi possível salvar: armazenamento cheio. Reduza o tamanho das fotos.'); }
+}
+function logar(entidade, acao, alvo, antes, depois, motivo){
+  DB.historico.unshift({id:uid(), data:agora(), usuario:DB.config.usuario, entidade, acao,
+    alvo, antes:antes??'', depois:depois??'', motivo:motivo??''});
+  if(DB.historico.length>800) DB.historico.length = 800;
+}
+
+/* ------------------------------ colaboradores ------------------------------ */
+function semearColaboradores(){
+  const base = [
+    ['CSC001','Maycon','Maycon','CSC','08h-13h'],['CSC002','Jhenifer','Jhenifer','CSC','08h-13h'],
+    ['CSC003','José Matheus','José Matheus','CSC','08h-13h'],['CSC004','Kayke','Kayke','CSC','13h-18h'],
+    ['CSC005','Adriel','Adriel','CSC','13h-18h'],['CSC006','Kawane','Kawane','CSC','13h-18h'],
+    ['CSC007','Blenda','Blenda','CSC','08h-18h'],['CSC008','Lukas','Lukas','CSC','08h-18h'],
+    ['CSC009','Nathan','Nathan','CSC','08h-18h'],['CSC010','Camily','Camily','CSC','08h-18h'],
+    ['CSC011','Ruiellen','Ruiellen','CSC','08h-18h'],['CSC012','Bruna','Bruna','CSC','08h-18h'],
+    ['CSC013','Jhenifer Nunes','Jhenifer Nunes','CSC','08h-13h'],
+    ['CSC018','Julia','Julia','CSC','18h-00h'],['CSC019','Tifany','Tifany','CSC','18h-00h'],
+    ['CSC020','Marcus','Marcus','CSC','18h-00h'],['CSC021','Sergio','Sergio','CSC','18h30-23h30'],
+    ['CSC022','Lucas','Lucas','CSC','16h-22h'],
+    ['VEN001','Jhennifer','Jhennifer','VENDAS','12h-20h'],
+    ['MAN001','João Antônio','João Antônio','MANUTENCAO',''],['MAN002','Fillipe','Fillipe','MANUTENCAO',''],
+    ['MAN003','Yan','Yan','MANUTENCAO','']
+  ];
+  base.forEach(([codigo,nome,exib,setor,jornada])=>{
+    DB.colaboradores.push({id:uid(), codigo, nome, exibicao:exib, setor, jornada,
+      foto:'', situacao:'ativo', apelidos:[], criado:agora(), origem:'CADASTRO REAL'});
+  });
+  DB.colaboradores.find(c=>c.codigo==='CSC013').apelidos = ['Jhenifer N.','J. Nunes'];
+  DB.colaboradores.find(c=>c.codigo==='CSC003').apelidos = ['José','Jose Matheus'];
+  DB.colaboradores.find(c=>c.codigo==='MAN002').apelidos = ['Filipe'];
+}
+
+/* Casa nome da planilha com cadastro — SOMENTE exato (nome, exibição, código, apelido).
+   Nunca por semelhança, para não confundir Jhenifer Nunes (CSC) com Jhennifer (Vendas). */
+function acharColaborador(nome, setor){
+  const n = norm(nome);
+  if(!n) return null;
+  const cand = DB.colaboradores.filter(c=>c.situacao!=='inativo');
+  const bate = c => norm(c.nome)===n || norm(c.exibicao)===n || norm(c.codigo)===n
+    || (c.apelidos||[]).some(a=>norm(a)===n);
+  const exatos = cand.filter(bate);
+  if(!exatos.length) return null;
+  if(exatos.length===1) return exatos[0];
+  if(setor){ const doSetor = exatos.filter(c=>c.setor===setor); if(doSetor.length===1) return doSetor[0]; }
+  return exatos[0];
+}
+function colaboradorPorId(id){ return DB.colaboradores.find(c=>c.id===id) || null; }
+</script>
+<script>
+/* =========================================================================
+   LEITURA DE PLANILHAS
+   ========================================================================= */
+var Importador = {
+  setorPadrao: 'CSC',
+  arquivos: [],
+  matrizLida: [],
+
+  normalizarSetor(v){
+    const t = norm(v).toUpperCase();
+    if(!t) return null;
+    if(/^CSC|ATENDIMENTO|SUPORTE|PREFERENCIAL|CEI/.test(t)) return 'CSC';
+    if(/VENDAS|COMERCIAL/.test(t)) return 'VENDAS';
+    if(/MANUTEN|TECNIC|CAMPO/.test(t)) return 'MANUTENCAO';
+    if(/SOBREAVISO|REDE|PROJETO|NOC/.test(t)) return 'SOBREAVISO';
+    if(/QUALIDADE/.test(t)) return 'QUALIDADE';
+    if(/FINANC|COBRAN|RETEN|REVERS|RENOVA|TROCA/.test(t)) return 'FINANCEIRO';
+    return null;
+  },
+
+  async lerArquivo(file){
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(new Uint8Array(buf), {type:'array', cellDates:true});
+    const abas = [];
+    wb.SheetNames.forEach(nome=>{
+      const ws = wb.Sheets[nome];
+      const matriz = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null, blankrows:false});
+      const limpa = matriz.filter(l=>l && l.some(c=>c!==null && String(c).trim()!==''));
+      if(limpa.length>1) abas.push({nome, matriz:limpa});
+    });
+    return abas;
+  },
+
+  detectar(aba){
+    const {nome, matriz} = aba;
+    const header = (matriz[0]||[]).map(h=>norm(h));
+    const hn = norm(nome);
+    if(/COLABORADOR|EQUIPE|CADASTRO/.test(hn)) return 'cadastro';
+    if(/SOBREAVISO|PLANTAO|REDE/.test(hn)) return 'sobreaviso';
+    if(/FERIADO/.test(hn)) return 'tabela';
+    const temData = header.some(h=>/^data|^dia$|^dt/.test(h));
+    const temNome = header.some(h=>/colaborador|nome|agente|tecnico/.test(h));
+    const temHora = header.some(h=>/horario|inicio|entrada|hora/.test(h));
+    if(temData && temNome && temHora) return 'tabela';
+    const datasNoHeader = (matriz[0]||[]).filter(c=>dataDeQualquer(c)).length;
+    if(datasNoHeader>=2) return 'matriz';
+    const datasNaColuna = matriz.filter(l=>dataDeQualquer(l[0])).length;
+    if(datasNaColuna>=2) return 'transposta';
+    if(temData && temNome) return 'tabela';
+    return 'desconhecido';
+  },
+
+  /* ---------- formato TABELA: uma linha por horário/setor ---------- */
+  parseTabela(aba){
+    const matriz = aba.matriz;
+    const header = (matriz[0]||[]).map(h=>norm(h));
+    const idx = (re, alt) => {
+      let i = header.findIndex(h=>re.test(h));
+      if(i<0 && alt) i = header.findIndex(h=>alt.test(h));
+      return i;
+    };
+    const iData = idx(/^data$|^dia$|^dt/);
+    const iSetor = idx(/setor|area|departamento/);
+    const iHi = idx(/horario.?inicio|hora.?inicio|^inicio$|^entrada$/);
+    const iHf = idx(/horario.?fim|hora.?fim|^fim$|^saida$|termino/);
+    const iHoraUnica = idx(/^horario$|^turno$|^hora$/);
+    const iCol = idx(/colaborador|^nome$|agente|tecnico/);
+    const iSit = idx(/situacao|status|observ/);
+    const registros = [], avisos = [];
+    for(let r=1; r<matriz.length; r++){
+      const linha = matriz[r]||[];
+      const data = dataDeQualquer(linha[iData]);
+      const setorBruto = iSetor>=0 ? linha[iSetor] : '';
+      const setor = this.normalizarSetor(setorBruto) || this.setorPadrao;
+      const nomesBrutos = iCol>=0 ? linha[iCol] : linha.slice(1).join(', ');
+      const nomes = separarNomes(nomesBrutos);
+      const sitBruta = iSit>=0 ? linha[iSit] : '';
+      let situacao = situacaoDe(sitBruta);
+      let hor = null;
+      if(iHi>=0 && iHf>=0) hor = parseHorario(`${linha[iHi]??''}-${linha[iHf]??''}`);
+      if(!hor && iHoraUnica>=0) hor = parseHorario(linha[iHoraUnica]);
+      if(!situacao && hor) situacao = 'TRABALHO';
+      if(!data){
+        if(nomes.length) avisos.push(`Aba "${aba.nome}", linha ${r+1}: data não identificada.`);
+        continue;
+      }
+      if(!nomes.length){
+        if(situacao) avisos.push(`Aba "${aba.nome}", linha ${r+1}: ${SIT_NOME[situacao]} sem colaborador (ignorada).`);
+        continue;
+      }
+      nomes.forEach(nome=>{
+        registros.push(this.montar({data, setor, nome, hor, situacao,
+          aba:aba.nome, linha:r+1, avisos}));
+      });
+    }
+    return {registros, avisos};
+  },
+
+  /* ---------- formato MATRIZ: colaboradores nas linhas, datas nas colunas ---------- */
+  parseMatriz(aba){
+    const matriz = aba.matriz;
+    const header = matriz[0]||[];
+    const colsData = [];
+    header.forEach((c,i)=>{ const d = dataDeQualquer(c); if(d && i>0) colsData.push({i, data:d}); });
+    const iSetor = header.findIndex(h=>/setor|area|departamento/i.test(norm(h)));
+    const registros = [], avisos = [];
+    for(let r=1; r<matriz.length; r++){
+      const linha = matriz[r]||[];
+      const nome = String(linha[0]??'').trim();
+      if(!nome || /^(total|setor|colaborador)$/i.test(nome)) continue;
+      const setor = this.normalizarSetor(iSetor>=0 ? linha[iSetor] : '') || this.setorPadrao;
+      colsData.forEach(({i,data})=>{
+        const cel = linha[i];
+        if(cel===null || cel===undefined || String(cel).trim()==='') return;
+        const hor = parseHorario(cel);
+        const situacao = situacaoDe(cel) || (hor ? 'TRABALHO' : null);
+        if(!situacao && !hor){
+          avisos.push(`Aba "${aba.nome}", ${nome} em ${isoParaBR(data)}: conteúdo "${String(cel).trim()}" não reconhecido.`);
+          return;
+        }
+        separarNomes(nome).forEach(n=>{
+          registros.push(this.montar({data, setor, nome:n, hor, situacao, aba:aba.nome, linha:r+1, avisos}));
+        });
+      });
+    }
+    return {registros, avisos};
+  },
+
+  /* ---------- formato TRANSPOSTA: dias nas linhas, nomes nas colunas ---------- */
+  parseTransposta(aba){
+    const matriz = aba.matriz;
+    const header = matriz[0]||[];
+    const colsNome = [];
+    header.forEach((c,i)=>{ if(i>0 && c && !dataDeQualquer(c)) colsNome.push({i, nome:String(c).trim()}); });
+    const registros = [], avisos = [];
+    for(let r=1; r<matriz.length; r++){
+      const linha = matriz[r]||[];
+      const data = dataDeQualquer(linha[0]);
+      if(!data) continue;
+      colsNome.forEach(({i,nome})=>{
+        const cel = linha[i];
+        if(cel===null || cel===undefined || String(cel).trim()==='') return;
+        const hor = parseHorario(cel);
+        const situacao = situacaoDe(cel) || (hor ? 'TRABALHO' : null);
+        if(!situacao && !hor) return;
+        separarNomes(nome).forEach(n=>{
+          registros.push(this.montar({data, setor:this.setorPadrao, nome:n, hor, situacao,
+            aba:aba.nome, linha:r+1, avisos}));
+        });
+      });
+    }
+    return {registros, avisos};
+  },
+
+  parseCadastro(aba){
+    const matriz = aba.matriz;
+    const header = (matriz[0]||[]).map(h=>norm(h));
+    const i = re => header.findIndex(h=>re.test(h));
+    const iCod=i(/codigo|cod|matricula|id/), iNome=i(/nome.?completo|^nome$|colaborador/),
+      iExib=i(/exibicao|apelido.?exib/), iSetor=i(/setor|area/), iApel=i(/apelido|variacao|grafia/),
+      iSit=i(/situacao|status/), iJor=i(/jornada|turno|horario/);
+    const pessoas = [];
+    for(let r=1; r<matriz.length; r++){
+      const l = matriz[r]||[];
+      const nome = String((iNome>=0?l[iNome]:l[1])??'').trim();
+      if(!nome) continue;
+      pessoas.push({codigo:String((iCod>=0?l[iCod]:'')??'').trim(), nome,
+        exibicao:String((iExib>=0?l[iExib]:'')??'').trim()||nome,
+        setor:this.normalizarSetor(iSetor>=0?l[iSetor]:'')||this.setorPadrao,
+        apelidos:String((iApel>=0?l[iApel]:'')??'').split(/[,;]/).map(s=>s.trim()).filter(Boolean),
+        situacao:iSit>=0 && /inativ/i.test(String(l[iSit]??'')) ? 'inativo':'ativo',
+        jornada:String((iJor>=0?l[iJor]:'')??'').trim()});
+    }
+    return pessoas;
+  },
+
+  parseSobreaviso(aba){
+    const matriz = aba.matriz;
+    const header = (matriz[0]||[]).map(h=>norm(h));
+    const i = re => header.findIndex(h=>re.test(h));
+    const iIni=i(/inicial|inicio|de/), iFim=i(/final|fim|ate/), iTec=i(/tecnico|colaborador|nome/),
+      iObs=i(/observ|nota/);
+    const out = [];
+    for(let r=1; r<matriz.length; r++){
+      const l = matriz[r]||[];
+      const ini = dataDeQualquer(iIni>=0?l[iIni]:l[0]);
+      const fim = dataDeQualquer(iFim>=0?l[iFim]:l[1]);
+      const tec = separarNomes(iTec>=0?l[iTec]:l[2]);
+      if(!ini || !fim) continue;
+      out.push({ini, fim, tecnicos:tec, obs:String((iObs>=0?l[iObs]:'')??'')});
+    }
+    return out;
+  },
+
+  montar({data, setor, nome, hor, situacao, aba, linha, avisos}){
+    const col = acharColaborador(nome, setor);
+    let problema = '';
+    if(!col) problema = 'Colaborador não cadastrado';
+    else if(col.setor !== setor && setor && col.setor) {
+      if(col.setor!==setor) problema = `Setor da planilha (${SETOR_NOME[setor]}) difere do cadastro (${SETOR_NOME[col.setor]})`;
+    }
+    if(situacao==='TRABALHO' && !hor) problema = problema || 'Horário não identificado';
+    if(situacao==='TRABALHO' && !setor) problema = problema || 'Setor não identificado';
+    return {i:uid(), data, setor, nome, colaboradorId: col?col.id:null,
+      inicio: hor?hor.ini:'', fim: hor?hor.fim:'', situacao: situacao||'TRABALHO',
+      aba, linha, problema, incluir:true};
+  },
+
+  /* monta os pendentes de todos os arquivos escolhidos */
+  processar(abas){
+    let regs = [], avisos = [], cadastros = [], sobreavisos = [], abasInfo = [];
+    abas.forEach(aba=>{
+      const tipo = this.detectar(aba);
+      abasInfo.push({aba:aba.nome, tipo});
+      if(tipo==='cadastro'){
+        const p = this.parseCadastro(aba); cadastros = cadastros.concat(p);
+      } else if(tipo==='sobreaviso'){
+        sobreavisos = sobreavisos.concat(this.parseSobreaviso(aba));
+      } else if(tipo==='tabela'){
+        const r = this.parseTabela(aba); regs = regs.concat(r.registros); avisos = avisos.concat(r.avisos);
+      } else if(tipo==='matriz'){
+        const r = this.parseMatriz(aba); regs = regs.concat(r.registros); avisos = avisos.concat(r.avisos);
+      } else if(tipo==='transposta'){
+        const r = this.parseTransposta(aba); regs = regs.concat(r.registros); avisos = avisos.concat(r.avisos);
+      } else {
+        avisos.push(`Aba "${aba.nome}": estrutura não reconhecida. Precisa de mapeamento manual.`);
+      }
+    });
+    this.marcarConflitos(regs);
+    return {registros:regs, avisos, cadastros, sobreavisos, abasInfo};
+  },
+
+  marcarConflitos(regs){
+    const vistos = new Map();
+    regs.forEach(r=>{
+      if(r.situacao!=='TRABALHO') return;
+      const k = `${r.colaboradorId||norm(r.nome)}|${r.data}`;
+      if(!vistos.has(k)) vistos.set(k, []);
+      vistos.get(k).push(r);
+    });
+    vistos.forEach(lista=>{
+      for(let a=0; a<lista.length; a++){
+        for(let b=a+1; b<lista.length; b++){
+          const A=lista[a], B=lista[b];
+          const iniA=parseHorario(A.inicio+'-'+A.fim), iniB=parseHorario(B.inicio+'-'+B.fim);
+          if(!iniA||!iniB) continue;
+          const mesmo = iniA.ini===iniB.ini && iniA.fim===iniB.fim;
+          const sobrepoe = iniA.iniMin < (iniB.fimMin||1440) && iniB.iniMin < (iniA.fimMin||1440);
+          if(mesmo){ A.duplicado = B.duplicado = true; A.problema = A.problema || 'Registro duplicado'; B.problema = B.problema || 'Registro duplicado'; }
+          else if(sobrepoe){ A.conflito = B.conflito = true; A.problema = A.problema || 'Horário conflitante no mesmo dia'; B.problema = B.problema || 'Horário conflitante no mesmo dia'; }
+        }
+      }
+    });
+  }
+};
+</script>
+<script>
+/* =========================================================================
+   APLICAÇÃO — núcleo e telas
+   ========================================================================= */
+var App = {
+  view: 'dashboard',
+  diaSel: hojeISO(),
+  mesCal: hojeISO().slice(0,7),
+  editandoConf: false,
+  editandoColab: null,
+
+  /* ---------------- infra ---------------- */
+  init(){
+    carregar();
+    document.querySelectorAll('.aba').forEach(b=>{
+      b.onclick = ()=> this.ir(b.dataset.v);
+    });
+    document.getElementById('modal').onclick = e=>{
+      if(e.target.id==='modal') this.fecharModal();
+    };
+    if(location.hash.startsWith('#p=')){ this.abrirPublicado(location.hash.slice(3)); return; }
+    this.ir('dashboard');
+  },
+  ir(v){
+    this.view = v;
+    document.querySelectorAll('.aba').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
+    document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on', x.id==='view-'+v));
+    const fn = {dashboard:this.dashboard, importar:this.importar, conferencia:this.conferencia,
+      colaboradores:this.colaboradores, informativo:this.informativo, sobreaviso:this.sobreaviso,
+      publicacoes:this.publicacoes, historico:this.historico}[v];
+    if(fn) fn.call(this);
+    this.atualizaBadge();
+    window.scrollTo({top:0,behavior:'smooth'});
+  },
+  atualizaBadge(){
+    const n = DB.pendentes.filter(p=>p.incluir).length;
+    const el = document.getElementById('badgeConf');
+    if(el) el.innerHTML = n ? ` <span class="bg am">${n}</span>` : '';
+  },
+  el(id){ return document.getElementById(id); },
+  toast(msg){ const t=this.el('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(this._tt); this._tt=setTimeout(()=>t.classList.remove('on'),2600); },
+  modal(html){ this.el('modalBox').innerHTML = html; this.el('modal').classList.add('on'); },
+  fecharModal(){ this.el('modal').classList.remove('on'); },
+
+  /* ---------------- dados ---------------- */
+  escalasDoDia(iso){
+    return DB.escalas.filter(e=>e.data===iso).sort((a,b)=>
+      (a.inicio||'99') .localeCompare(b.inicio||'99') || a.nome.localeCompare(b.nome));
+  },
+  trabalhosDoDia(iso){ return this.escalasDoDia(iso).filter(e=>e.situacao==='TRABALHO'); },
+  sobreavisoVigente(iso){
+    return DB.sobreavisos.find(s=>s.ini<=iso && iso<=s.fim) || null;
+  },
+  feriadoEm(iso){ return DB.feriados.find(f=>f.data===iso) || null; },
+  setoresDoDia(iso){
+    const m = new Map();
+    this.trabalhosDoDia(iso).forEach(e=>{
+      if(!m.has(e.setor)) m.set(e.setor, []);
+      m.get(e.setor).push(e);
+    });
+    return m;
+  },
+  agruparPorHorario(lista){
+    const m = new Map();
+    lista.forEach(e=>{
+      const k = e.inicio && e.fim ? `${e.inicio}|${e.fim}` : 's/h';
+      if(!m.has(k)) m.set(k, {inicio:e.inicio, fim:e.fim, pessoas:[]});
+      m.get(k).pessoas.push(e);
+    });
+    return [...m.values()].sort((a,b)=>String(a.inicio).localeCompare(String(b.inicio)));
+  },
+  avatar(colab, nome, tam){
+    const cls = tam ? 'av '+tam : 'av';
+    if(colab && colab.foto) return `<div class="${cls}"><img src="${colab.foto}" alt="${esc(nome)}"></div>`;
+    return `<div class="${cls}"><b>${esc(iniciais(nome))}</b></div>`;
+  },
+  nomeDe(e){ const c = e.colaboradorId ? colaboradorPorId(e.colaboradorId) : null; return c ? (c.exibicao||c.nome) : e.nome; },
+
+  /* ---------------- DASHBOARD ---------------- */
+  dashboard(){
+    const iso = this.diaSel;
+    const trabalhos = this.trabalhosDoDia(iso);
+    const setores = this.setoresDoDia(iso);
+    const sobre = this.sobreavisoVigente(iso);
+    const fer = this.feriadoEm(iso);
+    const pend = DB.pendentes.filter(p=>p.incluir).length;
+    const comProblema = DB.pendentes.filter(p=>p.incluir && p.problema).length;
+
+    const seg = segDaSemana(hojeISO());
+    const sab = addDias(seg,5), dom = addDias(seg,6);
+    const fds = [...this.trabalhosDoDia(sab), ...this.trabalhosDoDia(dom)];
+
+    const proximosFer = DB.feriados.filter(f=>f.data>=hojeISO()).sort((a,b)=>a.data.localeCompare(b.data)).slice(0,3);
+
+    const recSemFoto = DB.colaboradores.filter(c=>c.situacao!=='inativo' && !c.foto).length;
+
+    let h = `
+    <div class="grid g4" style="margin-bottom:16px">
+      ${this.kpi('Escalados hoje', trabalhos.length, isoParaBR(iso)+' · '+nomeDia(iso), 'az')}
+      ${this.kpi('Setores em operação', setores.size, [...setores.keys()].map(s=>SETOR_NOME[s]||s).join(' · ')||'nenhum', 'am')}
+      ${this.kpi('Sobreaviso Rede', sobre?sobre.tecnicos.length:0, sobre?`${isoParaBR(sobre.ini)} a ${isoParaBR(sobre.fim)}`:'não informado', sobre?'vd':'vm')}
+      ${this.kpi('Aguardando conferência', pend, comProblema?`${comProblema} com inconsistência`:'nenhuma inconsistência', pend?'vm':'vd')}
+    </div>`;
+
+    if(!DB.escalas.length && !DB.pendentes.length){
+      h += `<div class="aviso i"><div><b>Comece por aqui.</b> Cadastre as fotos dos colaboradores e importe a primeira planilha de escala. O informativo é gerado a partir dos dados conferidos.<br><br>
+        <button class="btn pri sm" onclick="App.ir('importar')">Importar escala</button>
+        <button class="btn sm" onclick="App.ir('colaboradores')">Cadastrar fotos</button>
+        <button class="btn sm" onclick="App.carregarDemonstracao()">Carregar demonstração</button></div></div>`;
+    }
+
+    /* ---- escala do dia ---- */
+    h += `<div class="card"><div class="hd">
+      <h3>Escala do dia</h3>
+      <div class="acoes">
+        <button class="btn sm" onclick="App.mudaDia(-1)">‹ anterior</button>
+        <button class="btn sm" onclick="App.mudaDia(0)">hoje</button>
+        <button class="btn sm" onclick="App.mudaDia(1)">próximo ›</button>
+      </div></div>
+      <div class="bd">
+        <div class="mini muted" style="margin-bottom:10px">
+          ${esc(nomeDia(iso))}, ${isoParaBR(iso)} ${fer?`<span class="bg am">FERIADO · ${esc(fer.nome)}</span>`:''}
+        </div>
+        ${trabalhos.length ? [...setores.entries()].map(([setor, lista])=>`
+          <div class="bloco">
+            <div class="bt">${esc(SETOR_NOME[setor]||setor)} — ${esc(nomeDia(iso).toUpperCase())}<span class="dta">${lista.length} escalado(s)</span></div>
+            ${this.agruparPorHorario(lista).map(g=>`
+              <div class="faixa-h">
+                <span class="hr">${g.inicio?`${g.inicio} ÀS ${g.fim}`:'SEM HORÁRIO'}</span>
+                <div class="slots">${g.pessoas.map(p=>`<div style="display:flex;align-items:center;gap:8px">
+                  ${this.avatar(colaboradorPorId(p.colaboradorId), this.nomeDe(p), 'sm')}
+                  <span class="small" style="font-weight:600">${esc(this.nomeDe(p))}</span></div>`).join('')}</div>
+              </div>`).join('')}
+          </div>`).join('') : `<div class="muted small">Nenhum colaborador escalado nesta data.</div>`}
+        ${sobre?`<div class="bloco"><div class="bt">SOBREAVISO REDE<span class="dta">${isoParaBR(sobre.ini)} a ${isoParaBR(sobre.fim)}</span></div>
+          <div class="faixa-h"><div class="slots">${sobre.tecnicos.map(t=>{
+            const c = acharColaborador(t,'MANUTENCAO');
+            return `<div class="pessoa">${this.avatar(c,t)}<div class="nm">${esc(t)}</div></div>`;}).join('')}</div></div></div>`:''}
+      </div></div>`;
+
+    /* ---- calendário + ladinho ---- */
+    h += `<div class="grid g2">
+      <div class="card"><div class="hd"><h3>Calendário</h3>
+        <div class="acoes">
+          <button class="btn sm" onclick="App.mudaMes(-1)">‹</button>
+          <button class="btn sm" onclick="App.mudaMes(0)">mês atual</button>
+          <button class="btn sm" onclick="App.mudaMes(1)">›</button>
+        </div></div>
+        <div class="bd">${this.calendario()}</div></div>
+
+      <div>
+        <div class="card"><div class="hd"><h3>Próximo final de semana</h3>
+          <div class="acoes"><button class="btn sm" onclick="App.abrirInformativo('${sab}','${dom}')">ver informativo</button></div></div>
+          <div class="bd">
+            <div class="small muted" style="margin-bottom:8px">${isoParaBR(sab)} (sáb) e ${isoParaBR(dom)} (dom) · ${fds.filter(e=>e.situacao==='TRABALHO').length} escalado(s)</div>
+            <div class="list">${[sab,dom].map(d=>{
+              const lista = this.trabalhosDoDia(d);
+              const g = this.setoresDoDia(d);
+              return `<div class="li"><div style="flex:1">
+                <div class="nm">${DIAS_CUR[diaSemana(d)]} ${isoParaBR(d).slice(0,5)}</div>
+                <div class="mini muted">${g.size?[...g.entries()].map(([s,l])=>`${SETOR_NOME[s].split(' —')[0]}: ${l.length}`).join(' · '):'sem escala'}</div>
+              </div><span class="bg ${lista.length?'vd':'cz'}">${lista.length}</span></div>`;
+            }).join('')}</div>
+          </div></div>
+
+        <div class="card"><div class="hd"><h3>Próximos feriados</h3>
+          <div class="acoes"><button class="btn sm" onclick="App.ir('sobreaviso')">gerenciar</button></div></div>
+          <div class="bd">${proximosFer.length?`<div class="list">${proximosFer.map(f=>{
+            const n = this.trabalhosDoDia(f.data).length;
+            return `<div class="li"><div style="flex:1"><div class="nm">${isoParaBR(f.data)}</div>
+              <div class="mini muted">${esc(f.nome)}</div></div>
+              <span class="bg ${n?'vd':'cz'}">${n?n+' escalado(s)':'sem escala'}</span></div>`;}).join('')}</div>`
+            :'<div class="muted small">Nenhum feriado cadastrado.</div>'}
+            <div class="hr-sep"></div>
+            <div class="mini muted">Sobreaviso não informado não é inventado: se o período não estiver cadastrado, o informativo exibe <b>Sobreaviso não informado</b>.</div>
+          </div></div>
+      </div>
+    </div>`;
+
+    /* ---- raster ---- */
+    h += `<div class="grid g2">
+      <div class="card"><div class="hd"><h3>Colaboradores por setor</h3></div><div class="bd">
+        ${SETORES.filter(s=>s!=='SOBREAVISO').map(s=>{
+          const tot = DB.colaboradores.filter(c=>c.setor===s && c.situacao!=='inativo').length;
+          const esc = trabalhos.filter(e=>e.setor===s).length;
+          return `<div class="li" style="margin-bottom:7px"><div style="flex:1"><div class="nm">${SETOR_NOME[s]}</div>
+            <div class="mini muted">${tot} cadastrado(s)</div></div>
+            <span class="bg ${esc?'vd':'cz'}">${esc} hoje</span></div>`;}).join('')}
+      </div></div>
+
+      <div class="card"><div class="hd"><h3>Alertas</h3></div><div class="bd">
+        <div class="list">
+          ${pend?`<div class="li"><span class="bg vm">conferência</span><div style="flex:1" class="small">${pend} registro(s) importados aguardando confirmação</div><button class="btn sm" onclick="App.ir('conferencia')">abrir</button></div>`:''}
+          ${comProblema?`<div class="li"><span class="bg lr">inconsistência</span><div style="flex:1" class="small">${comProblema} registro(s) com nome, setor ou horário a validar</div><button class="btn sm" onclick="App.ir('conferencia')">corrigir</button></div>`:''}
+          ${recSemFoto?`<div class="li"><span class="bg am">foto</span><div style="flex:1" class="small">${recSemFoto} colaborador(es) sem foto cadastrada (usa avatar de iniciais)</div><button class="btn sm" onclick="App.ir('colaboradores')">cadastrar</button></div>`:''}
+          ${!sobre?`<div class="li"><span class="bg am">sobreaviso</span><div style="flex:1" class="small">Nenhum sobreaviso cobrindo ${isoParaBR(iso)}</div><button class="btn sm" onclick="App.ir('sobreaviso')">cadastrar</button></div>`:''}
+          ${!pend&&!comProblema&&!recSemFoto&&sobre?'<div class="aviso s" style="margin:0">Nenhum alerta aberto.</div>':''}
+        </div>
+      </div></div>
+    </div>`;
+
+    /* ---- importações ---- */
+    h += `<div class="card"><div class="hd"><h3>Importações recentes</h3>
+      <div class="acoes"><button class="btn sm" onclick="App.ir('importar')">nova importação</button></div></div>
+      <div class="bd">${DB.importacoes.length?`<div class="list">${DB.importacoes.slice(0,5).map(i=>`
+        <div class="li"><div style="flex:1"><div class="nm">${esc(i.arquivo)}</div>
+        <div class="mini muted">${i.data} · ${i.registros} registro(s) · ${esc(i.usuario)}</div></div>
+        <span class="bg ${i.status==='confirmada'?'vd':i.status==='descartada'?'cz':'am'}">${esc(i.status)}</span></div>`).join('')}</div>`
+        :'<div class="muted small">Nenhuma importação registrada.</div>'}</div></div>`;
+
+    this.el('view-dashboard').innerHTML = h;
+  },
+  kpi(rot, val, sub, cor){
+    return `<div class="kpi ${cor||''}"><div class="rot">${esc(rot)}</div><div class="val">${val}</div><div class="sub">${esc(sub)}</div></div>`;
+  },
+  mudaDia(n){ this.diaSel = n===0 ? hojeISO() : addDias(this.diaSel, n); this.dashboard(); },
+  mudaMes(n){
+    const [a,m] = this.mesCal.split('-').map(Number);
+    const d = new Date(a, m-1+n, 1);
+    this.mesCal = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    this.dashboard();
+  },
+  calendario(){
+    const [ano, mes] = this.mesCal.split('-').map(Number);
+    const primeiro = new Date(ano, mes-1, 1);
+    const inicio = (primeiro.getDay()+6)%7; // segunda como primeiro
+    const ultimo = new Date(ano, mes, 0).getDate();
+    let h = `<div class="mini" style="text-align:center;font-weight:800;color:var(--azul);margin-bottom:8px;text-transform:capitalize">${MESES[mes-1]} ${ano}</div>`;
+    h += `<div class="cal">${['S','T','Q','Q','S','S','D'].map(d=>`<div class="dh">${d}</div>`).join('')}`;
+    for(let i=0;i<inicio;i++) h += '<div class="d vaz"></div>';
+    for(let d=1; d<=ultimo; d++){
+      const iso = `${ano}-${String(mes).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const n = this.trabalhosDoDia(iso).length;
+      const fer = this.feriadoEm(iso) ? 'FER' : '';
+      const w = diaSemana(iso);
+      h += `<div class="d ${w===0||w===6?'fd':''} ${iso===hojeISO()?'hoje':''} ${iso===this.diaSel?'sel':''}"
+        onclick="App.selecionaData('${iso}')">
+        <div class="n">${d}</div>${n?`<div class="t">${n}</div>`:''}${fer?`<div class="t" style="color:var(--laranja)">${fer}</div>`:''}</div>`;
+    }
+    h += '</div>';
+    h += `<div class="mini muted" style="margin-top:9px">Número = escalados no dia · FER = feriado cadastrado. Clique para abrir a escala.</div>`;
+    return h;
+  },
+  selecionaData(iso){ this.diaSel = iso; this.dashboard(); },
+
+  /* ---------------- demonstração ---------------- */
+  carregarDemonstracao(){
+    const sab = addDias(segDaSemana(hojeISO()),5), dom = addDias(sab,1);
+    const imp = {id:uid(), arquivo:'DEMONSTRAÇÃO (fictício)', data:agora(), usuario:DB.config.usuario, registros:0, status:'demonstracao'};
+    const add = (data, setor, nome, ini, fim) => {
+      const c = acharColaborador(nome, setor);
+      DB.escalas.push({id:uid(), data, setor, colaboradorId:c?c.id:null, nome, inicio:ini, fim:fim,
+        situacao:'TRABALHO', origem:'DEMONSTRAÇÃO', importacaoId:imp.id, publicado:false, criado:agora()});
+      imp.registros++;
+    };
+    add(sab,'CSC','Jhenifer Nunes','08:00','13:00'); add(sab,'CSC','Maycon','08:00','13:00');
+    add(sab,'CSC','Adriel','08:00','13:00'); add(sab,'CSC','Kawane','08:00','13:00');
+    add(sab,'CSC','Kayke','08:00','13:00'); add(sab,'CSC','Camily','08:00','13:00');
+    add(sab,'CSC','Blenda','10:00','16:00'); add(sab,'CSC','Lukas','13:00','18:00');
+    add(sab,'VENDAS','Jhennifer','08:00','14:00'); add(sab,'MANUTENCAO','Fillipe','08:00','17:00');
+    add(dom,'CSC','José Matheus','08:00','13:00'); add(dom,'CSC','Nathan','08:00','13:00');
+    add(dom,'CSC','Kawane','13:00','18:00'); add(dom,'CSC','Kayke','13:00','18:00');
+    add(dom,'MANUTENCAO','Yan','08:00','17:00');
+    DB.sobreavisos.push({id:uid(), ini:addDias(segDaSemana(hojeISO()),0), fim:addDias(segDaSemana(hojeISO()),6),
+      tecnicos:['João Antônio','Fillipe','Yan'], obs:'Demonstração'});
+    DB.importacoes.unshift(imp);
+    logar('demonstração','carregar','dados fictícios','','', 'dados de teste da interface');
+    salvar(); this.dashboard();
+    toast('Demonstração carregada. Todos os registros estão marcados como DEMONSTRAÇÃO.');
+  },
+
+  /* ---------------- backup ---------------- */
+  exportarTudo(){
+    const blob = new Blob([JSON.stringify(DB,null,2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `backup-escalas-csc-${hojeISO()}.json`;
+    a.click();
+  }
+};
+</script>
+<script>
+/* =========================================================================
+   IMPORTAR · CONFERÊNCIA · COLABORADORES
+   ========================================================================= */
+Object.assign(App, {
+
+  _abas: [],
+  _avisos: [],
+
+  /* ================= IMPORTAR ================= */
+  importar(){
+    const abas = this._abas;
+    let h = `<div class="card"><div class="hd"><h3>Importar escala</h3>
+      <div class="acoes">
+        <button class="btn sm" onclick="App.baixarModelo()">Baixar planilha modelo</button>
+        <button class="btn sm" onclick="App.importarBackup()">Restaurar backup JSON</button>
+      </div></div>
+      <div class="bd">
+        <div class="aviso i"><div>Envie Excel (.xlsx, .xls) ou CSV. Pode enviar vários arquivos e o sistema lê todas as abas. Nada é publicado: tudo passa pela conferência.</div></div>
+        <div class="drop" id="dropZone" onclick="document.getElementById('fileInp').click()">
+          <div style="font-size:15px;margin-bottom:6px">📄 <b>Clique para escolher os arquivos</b> ou arraste aqui</div>
+          <div class="mini muted">Excel, CSV · várias abas · vários arquivos</div>
+          <input type="file" id="fileInp" accept=".xlsx,.xls,.csv" multiple style="display:none"
+            onchange="App.receberArquivos(this.files)">
+        </div>
+        <div class="campo" style="max-width:320px;margin-top:14px">
+          <label class="f">Setor padrão (quando a planilha não informar)</label>
+          <select onchange="Importador.setorPadrao=this.value">
+            ${SETORES.map(s=>`<option value="${s}" ${s==='CSC'?'selected':''}>${SETOR_NOME[s]}</option>`).join('')}
+          </select>
+        </div>
+        ${abas.length?`
+          <div class="hr-sep"></div>
+          <div class="small" style="font-weight:700;margin-bottom:8px">${abas.length} aba(s) lida(s)</div>
+          <div class="list">${abas.map((a,i)=>`
+            <div class="li"><span class="bg az">${esc(a.arquivo)}</span>
+              <div style="flex:1"><div class="nm">${esc(a.nome)}</div>
+              <div class="mini muted">formato detectado: <b>${esc(a.tipo)}</b></div></div>
+              <button class="btn sm dg" onclick="App.removerAba(${i})">remover</button></div>`).join('')}</div>
+          <div style="margin-top:14px">
+            <button class="btn pri" onclick="App.processarImportacao()">Processar e conferir →</button>
+            <button class="btn" onclick="App._abas=[];App.importar()">limpar</button>
+          </div>`:''}
+        ${this._avisos.length?`<div class="aviso w" style="margin-top:14px"><div>
+          <b>Pontos que precisam de atenção:</b><ul style="margin:6px 0 0 16px;padding:0">
+          ${this._avisos.slice(0,12).map(a=>`<li>${esc(a)}</li>`).join('')}
+          ${this._avisos.length>12?`<li>… e mais ${this._avisos.length-12}</li>`:''}</ul></div></div>`:''}
+      </div></div>
+
+      <div class="card"><div class="hd"><h3>Formatos reconhecidos</h3></div><div class="bd">
+        <div class="grid g2">
+          <div>
+            <div class="small" style="font-weight:700;margin-bottom:6px">Horários aceitos</div>
+            <div class="mini muted">08h-13h · 08:00/13:00 · 08H ÀS 13H · 18h-00h · 12-16 · 18h30-23h30<br>
+            Todos convertidos para HH:MM a HH:MM (24h).</div>
+            <div class="small" style="font-weight:700;margin:12px 0 6px">Situações</div>
+            <div class="mini muted">FOLGA, FÉRIAS, ATESTADO e FOLGA FERIADO não geram turno: ficam registradas como situação.
+            SIM e NÃO indicam expediente e nunca são lidos como nome.</div>
+          </div>
+          <div>
+            <div class="small" style="font-weight:700;margin-bottom:6px">Vários nomes na mesma célula</div>
+            <div class="mini muted">Separados por vírgula, ponto e vírgula, barra ou “ e ”. O mesmo horário é aplicado a todos.</div>
+            <div class="small" style="font-weight:700;margin:12px 0 6px">Estruturas</div>
+            <div class="mini muted">Colaboradores nas linhas e datas nas colunas · dias nas linhas · uma linha por horário
+            (data, setor, início, fim, colaboradores) · abas de sobreaviso e de cadastro.</div>
+          </div>
+        </div>
+        <div class="aviso w" style="margin:14px 0 0"><div><b>Regra obrigatória:</b> o sistema não inventa colaborador, horário ou setor.
+        Nome fora do cadastro entra como pendência para você decidir.</div></div>
+      </div></div>`;
+    this.el('view-importar').innerHTML = h;
+    const dz = this.el('dropZone');
+    if(dz){
+      dz.ondragover = e=>{ e.preventDefault(); dz.classList.add('over'); };
+      dz.ondragleave = ()=> dz.classList.remove('over');
+      dz.ondrop = e=>{ e.preventDefault(); dz.classList.remove('over'); this.receberArquivos(e.dataTransfer.files); };
+    }
+  },
+
+  async receberArquivos(files){
+    if(!files || !files.length) return;
+    this._avisos = [];
+    for(const f of files){
+      try{
+        const abas = await Importador.lerArquivo(f);
+        abas.forEach(a=>{
+          const tipo = Importador.detectar(a);
+          this._abas.push({arquivo:f.name, nome:a.nome, matriz:a.matriz, tipo});
+        });
+      }catch(err){
+        this._avisos.push(`Não foi possível ler "${f.name}": ${err.message}`);
+      }
+    }
+    this.importar();
+    toast(`${this._abas.length} aba(s) prontas para processar.`);
+  },
+  removerAba(i){ this._abas.splice(i,1); this.importar(); },
+
+  processarImportacao(){
+    if(!this._abas.length) return toast('Nenhuma aba carregada.');
+    const res = Importador.processar(this._abas);
+    if(!res.registros.length && !res.cadastros.length){
+      return toast('Nenhum registro reconhecido. Verifique a estrutura da planilha.');
+    }
+    const imp = {id:uid(), arquivo:this._abas.map(a=>a.arquivo).filter((v,i,arr)=>arr.indexOf(v)===i).join(', '),
+      data:agora(), usuario:DB.config.usuario, registros:res.registros.length, status:'aguardando conferência'};
+    DB.importacoes.unshift(imp);
+
+    /* cadastros novos vindos da aba COLABORADORES */
+    let novos = 0;
+    res.cadastros.forEach(p=>{
+      if(!acharColaborador(p.nome, p.setor)){
+        DB.colaboradores.push({id:uid(), codigo:p.codigo||'', nome:p.nome, exibicao:p.exibicao,
+          setor:p.setor, jornada:p.jornada||'', foto:'', situacao:p.situacao||'ativo',
+          apelidos:p.apelidos||[], criado:agora(), origem:'IMPORTADO'});
+        novos++;
+      }
+    });
+    res.sobreavisos.forEach(s=>{
+      if(!DB.sobreavisos.some(x=>x.ini===s.ini && x.fim===s.fim)){
+        DB.sobreavisos.push({id:uid(), ini:s.ini, fim:s.fim, tecnicos:s.tecnicos, obs:s.obs||''});
+      }
+    });
+
+    DB.pendentes = DB.pendentes.concat(res.registros);
+    this._avisos = res.avisos;
+    logar('importação','processar', imp.arquivo, '', `${res.registros.length} registros`, '');
+    salvar();
+    this._abas = [];
+    toast(`Lidos ${res.registros.length} registros${novos?` e ${novos} colaborador(es) novo(s)`:''}.`);
+    this.ir('conferencia');
+  },
+
+  baixarModelo(){
+    const wb = XLSX.utils.book_new();
+    const d0 = segDaSemana(hojeISO());
+    const cab = ['colaborador','setor'];
+    for(let i=0;i<7;i++) cab.push(isoParaBR(addDias(d0,i)));
+    const aoa = [cab];
+    DB.colaboradores.filter(c=>c.setor==='CSC' && c.situacao!=='inativo').forEach(c=>{
+      const l = [c.nome,'CSC'];
+      for(let i=0;i<7;i++) l.push('');
+      aoa.push(l);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'ESCALA_SEMANA');
+
+    const sab = addDias(d0,5), dom = addDias(d0,6);
+    const fds = [['data','setor','horario_inicio','horario_fim','colaboradores','situacao'],
+      [isoParaBR(sab),'CSC','08:00','13:00','Nome 1, Nome 2','TRABALHO'],
+      [isoParaBR(sab),'CSC','13:00','18:00','Nome 3','TRABALHO'],
+      [isoParaBR(dom),'CSC','08:00','13:00','Nome 4','TRABALHO'],
+      [isoParaBR(dom),'CSC','','','','FOLGA']];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(fds), 'FINAL_DE_SEMANA');
+
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+      ['data','feriado','setor','horario_inicio','horario_fim','colaboradores','situacao'],
+      ['20/11/2026','DIA DA CONSCIÊNCIA NEGRA','CSC','08:00','13:00','Nome 1','TRABALHO'],
+      ['20/11/2026','DIA DA CONSCIÊNCIA NEGRA','QUALIDADE','','','','FOLGA_FERIADO']
+    ]), 'FERIADOS');
+
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+      ['data_inicial','data_final','tecnicos','observacoes'],
+      [isoParaBR(d0), isoParaBR(addDias(d0,6)), 'Técnico 1 / Técnico 2', 'Semana de referência']
+    ]), 'SOBREAVISO');
+
+    const cad = [['codigo','nome_completo','nome_exibicao','setor','situacao','apelidos','jornada']];
+    DB.colaboradores.forEach(c=>cad.push([c.codigo,c.nome,c.exibicao,c.setor,c.situacao,(c.apelidos||[]).join('; '),c.jornada||'']));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cad), 'COLABORADORES');
+
+    XLSX.writeFile(wb, 'modelo-escala-csc.xlsx');
+    toast('Planilha modelo baixada.');
+  },
+
+  importarBackup(){
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = '.json';
+    inp.onchange = ()=>{
+      const f = inp.files[0]; if(!f) return;
+      const fr = new FileReader();
+      fr.onload = ()=>{
+        try{
+          const d = JSON.parse(fr.result);
+          if(!d.colaboradores || !d.escalas) throw new Error('arquivo inválido');
+          DB = Object.assign(dbVazio(), d);
+          salvar(); toast('Backup restaurado.'); this.ir('dashboard');
+        }catch(e){ toast('Backup inválido: '+e.message); }
+      };
+      fr.readAsText(f);
+    };
+    inp.click();
+  },
+
+  /* ================= CONFERÊNCIA ================= */
+  confFiltro: 'todos',
+  confBusca: '',
+
+  conferencia(){
+    const pend = DB.pendentes;
+    const edit = this.editandoConf;
+    const comProblema = pend.filter(p=>p.problema).length;
+    const incluir = pend.filter(p=>p.incluir).length;
+
+    let lista = pend.slice();
+    if(this.confFiltro==='problema') lista = lista.filter(p=>p.problema);
+    if(this.confBusca){ const q = norm(this.confBusca); lista = lista.filter(p=>norm(p.nome).includes(q)); }
+    lista.sort((a,b)=> a.data.localeCompare(b.data) || String(a.inicio).localeCompare(String(b.inicio)));
+
+    let h = `<div class="card"><div class="hd"><h3>Conferência antes da publicação</h3>
+      <div class="acoes">
+        <button class="btn ${edit?'am':''}" onclick="App.editarConf()">${edit?'✓ edição ativa':'CORRIGIR DADOS'}</button>
+        <button class="btn pri" onclick="App.confirmarImportacao()">CONFIRMAR IMPORTAÇÃO</button>
+        <button class="btn" onclick="App.publicarDireto()">PUBLICAR INFORMATIVO</button>
+        <button class="btn dg" onclick="App.descartarPendentes()">descartar</button>
+      </div></div>
+      <div class="bd">
+        ${pend.length?`
+        <div class="grid g4" style="margin-bottom:14px">
+          ${this.kpi('Registros lidos', pend.length, 'no lote atual','az')}
+          ${this.kpi('Marcados para entrar', incluir, 'serão gravados na escala','vd')}
+          ${this.kpi('Com inconsistência', comProblema, 'nome, setor ou horário','vm')}
+          ${this.kpi('Dias cobertos', new Set(pend.map(p=>p.data)).size, 'datas distintas','am')}
+        </div>
+        <div class="sel" style="margin-bottom:12px">
+          <div class="campo" style="max-width:190px"><label class="f">Filtro</label>
+            <select onchange="App.confFiltro=this.value;App.conferencia()">
+              <option value="todos" ${this.confFiltro==='todos'?'selected':''}>Todos</option>
+              <option value="problema" ${this.confFiltro==='problema'?'selected':''}>Somente com problema</option>
+            </select></div>
+          <div class="campo" style="max-width:230px"><label class="f">Buscar colaborador</label>
+            <input type="text" value="${esc(this.confBusca)}" oninput="App.confBusca=this.value;App.conferencia()"></div>
+        </div>
+        ${edit?'<div class="aviso w"><div>Edição ativa: altere data, setor, nome, horário ou situação. Cada alteração fica registrada no histórico.</div></div>':''}
+        <div class="tbl-scroll"><table>
+          <thead><tr>
+            <th style="width:38px">In</th><th>Data</th><th>Setor</th><th>Colaborador</th>
+            <th>Início</th><th>Fim</th><th>Situação</th><th>Validação</th><th></th>
+          </tr></thead><tbody>
+          ${lista.map(p=>{
+            const i = pend.indexOf(p);
+            const c = p.colaboradorId ? colaboradorPorId(p.colaboradorId) : null;
+            const bg = p.problema ? 'vm' : p.duplicado ? 'am' : 'vd';
+            const txt = p.problema || 'ok';
+            return `<tr>
+              <td><input type="checkbox" ${p.incluir?'checked':''} onchange="App.confSet(${i},'incluir',this.checked)"></td>
+              <td>${edit?`<input type="date" value="${p.data}" onchange="App.confSet(${i},'data',this.value)">`:isoParaBR(p.data)}</td>
+              <td>${edit?`<select onchange="App.confSet(${i},'setor',this.value)">${SETORES.map(s=>`<option value="${s}" ${p.setor===s?'selected':''}>${esc(SETOR_NOME[s])}</option>`).join('')}</select>`:esc(SETOR_NOME[p.setor]||p.setor)}</td>
+              <td>${edit?`<input type="text" value="${esc(p.nome)}" onchange="App.confSet(${i},'nome',this.value)">`:esc(p.nome)}
+                  ${!c&&!edit?` <button class="btn sm" onclick="App.novoColaborador('${esc(p.nome)}','${p.setor}')">cadastrar</button>`:''}</td>
+              <td>${edit?`<input type="time" value="${p.inicio}" onchange="App.confSet(${i},'inicio',this.value)">`:(p.inicio||'—')}</td>
+              <td>${edit?`<input type="time" value="${p.fim}" onchange="App.confSet(${i},'fim',this.value)">`:(p.fim||'—')}</td>
+              <td>${edit?`<select onchange="App.confSet(${i},'situacao',this.value)">${SITUACOES.map(s=>`<option value="${s}" ${p.situacao===s?'selected':''}>${SIT_NOME[s]}</option>`).join('')}</select>`:`<span class="bg ${p.situacao==='TRABALHO'?'az':'cz'}">${SIT_NOME[p.situacao]}</span>`}</td>
+              <td><span class="bg ${bg}">${esc(txt)}</span></td>
+              <td><button class="btn sm dg" onclick="App.confRemover(${i})">×</button></td>
+            </tr>`;
+          }).join('')}
+          </tbody></table></div>
+        <div class="mini muted" style="margin-top:10px">${lista.length} linha(s) exibida(s) · ${DB.pendentes.length} no lote</div>`
+        :`<div class="aviso s"><div>Nenhum registro pendente. Importe uma planilha para começar a conferência.</div></div>
+          <button class="btn pri" onclick="App.ir('importar')">Importar escala</button>`}
+      </div></div>`;
+    this.el('view-conferencia').innerHTML = h;
+    this.atualizaBadge();
+  },
+  editarConf(){ this.editandoConf = !this.editandoConf; this.conferencia(); },
+  confSet(i, campo, valor){
+    const p = DB.pendentes[i]; if(!p) return;
+    const antes = p[campo];
+    p[campo] = valor;
+    if(campo==='nome'){
+      const c = acharColaborador(valor, p.setor);
+      p.colaboradorId = c ? c.id : null;
+      p.problema = c ? '' : 'Colaborador não cadastrado';
+    }
+    if(campo==='setor' || campo==='inicio' || campo==='fim'){
+      if(campo==='inicio'||campo==='fim'){ if(p.inicio && p.fim && p.situacao==='TRABALHO') p.problema = p.colaboradorId?'':'Colaborador não cadastrado'; }
+      if(campo==='setor'){
+        const c = p.colaboradorId?colaboradorPorId(p.colaboradorId):null;
+        if(c && c.setor!==valor) p.problema = `Setor difere do cadastro (${SETOR_NOME[c.setor]})`;
+        else if(!c) p.problema = 'Colaborador não cadastrado';
+        else p.problema = '';
+      }
+    }
+    if(campo==='situacao' && valor!=='TRABALHO') p.problema = p.colaboradorId?'':'Colaborador não cadastrado';
+    logar('conferência','corrigir', p.nome, `${campo}: ${antes}`, `${campo}: ${valor}`, '');
+    salvar(); this.conferencia();
+  },
+  confRemover(i){ const p = DB.pendentes.splice(i,1)[0]; logar('conferência','remover', p?p.nome:'','','',''); salvar(); this.conferencia(); },
+
+  confirmarImportacao(){
+    const validos = DB.pendentes.filter(p=>p.incluir);
+    if(!validos.length) return toast('Nenhum registro marcado para confirmar.');
+    const impId = DB.importacoes[0] ? DB.importacoes[0].id : uid();
+    let gravados = 0, atualizados = 0;
+    validos.forEach(p=>{
+      const chave = e => e.data===p.data && (e.colaboradorId||norm(e.nome)) === (p.colaboradorId||norm(p.nome)) && e.inicio===p.inicio && e.fim===p.fim && e.situacao===p.situacao;
+      if(DB.escalas.some(chave)) return;
+      DB.escalas.push({id:uid(), data:p.data, setor:p.setor, colaboradorId:p.colaboradorId, nome:p.nome,
+        inicio:p.inicio, fim:p.fim, situacao:p.situacao, origem:'IMPORTADO', importacaoId:impId,
+        publicado:false, criado:agora()});
+      gravados++;
+    });
+    const restantes = DB.pendentes.filter(p=>!p.incluir);
+    if(DB.importacoes[0]) DB.importacoes[0].status = 'confirmada';
+    DB.pendentes = restantes;
+    logar('importação','confirmar', impId, '', `${gravados} registros gravados`, '');
+    salvar();
+    toast(`${gravados} registro(s) gravados na escala${atualizados?`, ${atualizados} atualizados`:''}.`);
+    this.ir('dashboard');
+  },
+  descartarPendentes(){
+    if(!DB.pendentes.length) return;
+    if(!confirm('Descartar todos os registros pendentes deste lote?')) return;
+    logar('importação','descartar','lote pendente', `${DB.pendentes.length} registros`, '0', '');
+    DB.pendentes = [];
+    salvar(); this.conferencia(); toast('Lote descartado.');
+  },
+  publicarDireto(){
+    if(DB.pendentes.filter(p=>p.incluir).length){
+      this.confirmarImportacao();
+    }
+    this.ir('informativo');
+  },
+
+  /* ================= COLABORADORES ================= */
+  colabBusca: '',
+  colaboradores(){
+    const q = norm(this.colabBusca);
+    const lista = DB.colaboradores
+      .filter(c=>!q || norm(c.nome).includes(q) || norm(c.codigo).includes(q) || (c.apelidos||[]).some(a=>norm(a).includes(q)))
+      .sort((a,b)=> (a.setor||'').localeCompare(b.setor||'') || a.nome.localeCompare(b.nome));
+    const semFoto = DB.colaboradores.filter(c=>c.situacao!=='inativo' && !c.foto).length;
+
+    let h = `<div class="card"><div class="hd"><h3>Colaboradores</h3>
+      <div class="acoes">
+        <input type="text" placeholder="buscar nome, código ou apelido" style="width:230px"
+          value="${esc(this.colabBusca)}" oninput="App.colabBusca=this.value;App.colaboradores()">
+        <button class="btn pri" onclick="App.novoColaborador()">+ Novo colaborador</button>
+      </div></div>
+      <div class="bd">
+        <div class="grid g4" style="margin-bottom:14px">
+          ${this.kpi('Cadastrados', DB.colaboradores.length, 'no total','az')}
+          ${this.kpi('Ativos', DB.colaboradores.filter(c=>c.situacao!=='inativo').length, 'disponíveis para escala','vd')}
+          ${this.kpi('Sem foto', semFoto, 'usam avatar de iniciais', semFoto?'am':'vd')}
+          ${this.kpi('Setores', new Set(DB.colaboradores.map(c=>c.setor)).size, 'com equipe cadastrada','az')}
+        </div>
+        ${semFoto?`<div class="aviso w"><div>${semFoto} colaborador(es) sem foto. A foto é enviada uma única vez e passa a ser usada automaticamente em todas as escalas.</div></div>`:''}
+        <div class="grid g3">
+        ${lista.map(c=>{
+          const nEsc = DB.escalas.filter(e=>e.colaboradorId===c.id || norm(e.nome)===norm(c.nome)).length;
+          return `<div class="li" style="align-items:flex-start">
+            ${this.avatar(c, c.nome, 'lg')}
+            <div style="flex:1;min-width:0">
+              <div class="nm">${esc(c.exibicao||c.nome)}</div>
+              <div class="mini muted">${esc(c.nome)}</div>
+              <div class="mini" style="margin-top:5px">
+                <span class="bg az">${esc(SETOR_NOME[c.setor]||c.setor)}</span>
+                ${c.codigo?`<span class="bg cz">${esc(c.codigo)}</span>`:''}
+                <span class="bg ${c.situacao==='inativo'?'cz':'vd'}">${c.situacao==='inativo'?'inativo':'ativo'}</span>
+              </div>
+              <div class="mini muted" style="margin-top:5px">${c.jornada?esc(c.jornada)+' · ':''}${nEsc} escala(s)${(c.apelidos||[]).length?' · apelidos: '+esc(c.apelidos.join(', ')):''}</div>
+              <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn sm" onclick="App.editarColaborador('${c.id}')">editar</button>
+                <button class="btn sm" onclick="App.fotoRapida('${c.id}')">foto</button>
+                <button class="btn sm" onclick="App.historicoColaborador('${c.id}')">escalas</button>
+              </div>
+            </div></div>`;
+        }).join('') || '<div class="muted small">Nenhum colaborador encontrado.</div>'}
+        </div>
+        <div class="aviso i" style="margin:16px 0 0"><div><b>Nomes parecidos não são a mesma pessoa.</b>
+        O reconhecimento é feito apenas por nome exato, código ou apelido cadastrado.
+        JHENIFER NUNES (CSC) e JHENNIFER (Vendas) são cadastros distintos.</div></div>
+      </div></div>`;
+    this.el('view-colaboradores').innerHTML = h;
+  },
+
+  novoColaborador(nome, setor){
+    const c = {id:'', nome:nome||'', exibicao:nome||'', codigo:'', setor:setor||'CSC', jornada:'',
+      foto:'', situacao:'ativo', apelidos:[]};
+    this.formColaborador(c, true);
+  },
+  editarColaborador(id){
+    const c = colaboradorPorId(id); if(!c) return;
+    this.formColaborador(JSON.parse(JSON.stringify(c)), false);
+  },
+  formColaborador(c, novo){
+    this.modal(`
+      <h3>${novo?'Novo colaborador':'Editar colaborador'}</h3>
+      <div class="grid g2">
+        <div class="campo"><label class="f">Nome completo</label>
+          <input type="text" id="fNome" value="${esc(c.nome)}"></div>
+        <div class="campo"><label class="f">Nome de exibição</label>
+          <input type="text" id="fExib" value="${esc(c.exibicao)}"></div>
+        <div class="campo"><label class="f">Código / matrícula</label>
+          <input type="text" id="fCod" value="${esc(c.codigo)}"></div>
+        <div class="campo"><label class="f">Setor</label>
+          <select id="fSetor">${SETORES.map(s=>`<option value="${s}" ${c.setor===s?'selected':''}>${esc(SETOR_NOME[s])}</option>`).join('')}</select></div>
+        <div class="campo"><label class="f">Jornada padrão</label>
+          <input type="text" id="fJor" value="${esc(c.jornada||'')}" placeholder="08h-18h"></div>
+        <div class="campo"><label class="f">Situação</label>
+          <select id="fSit"><option value="ativo" ${c.situacao!=='inativo'?'selected':''}>Ativo</option>
+          <option value="inativo" ${c.situacao==='inativo'?'selected':''}>Inativo</option></select></div>
+      </div>
+      <div class="campo"><label class="f">Apelidos e variações de grafia (separe por ;)</label>
+        <input type="text" id="fApel" value="${esc((c.apelidos||[]).join('; '))}" placeholder="Jhenifer N.; J. Nunes"></div>
+      <div class="campo"><label class="f">Foto de perfil</label>
+        <div style="display:flex;gap:14px;align-items:center">
+          <div id="previewFoto">${c.foto?`<div class="av lg"><img src="${c.foto}"></div>`:`<div class="av lg"><b>${esc(iniciais(c.nome))}</b></div>`}</div>
+          <div style="flex:1">
+            <input type="file" id="fFoto" accept="image/*" onchange="App.trocarFoto(this)">
+            <div class="mini muted" style="margin-top:6px">Enquadrada em círculo, 260x260. Envie uma vez: será usada em todas as escalas.</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button class="btn" onclick="App.fecharModal()">cancelar</button>
+        <button class="btn pri" onclick="App.salvarColaborador('${c.id}')">salvar</button>
+      </div>`);
+    this._fotoTemp = c.foto || '';
+  },
+  async trocarFoto(inp){
+    const f = inp.files[0]; if(!f) return;
+    const dataUrl = await this.recortarFoto(f);
+    this._fotoTemp = dataUrl;
+    this.el('previewFoto').innerHTML = `<div class="av lg"><img src="${dataUrl}"></div>`;
+  },
+  recortarFoto(file){
+    return new Promise(res=>{
+      const fr = new FileReader();
+      fr.onload = ()=>{
+        const img = new Image();
+        img.onload = ()=>{
+          const s = Math.min(img.width, img.height);
+          const cv = document.createElement('canvas');
+          cv.width = cv.height = 260;
+          const ctx = cv.getContext('2d');
+          const sx = (img.width - s)/2;
+          const sy = Math.max(0, (img.height - s)/2 - s*0.06);
+          ctx.drawImage(img, sx, sy, s, s, 0, 0, 260, 260);
+          res(cv.toDataURL('image/jpeg', 0.82));
+        };
+        img.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  },
+  fotoRapida(id){
+    const c = colaboradorPorId(id); if(!c) return;
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = async ()=>{
+      const f = inp.files[0]; if(!f) return;
+      const antes = c.foto ? 'com foto' : 'sem foto';
+      c.foto = await this.recortarFoto(f);
+      logar('colaborador','foto', c.nome, antes, 'com foto', '');
+      salvar(); this.colaboradores(); toast('Foto atualizada.');
+    };
+    inp.click();
+  },
+  salvarColaborador(id){
+    const nome = this.el('fNome').value.trim();
+    if(!nome) return toast('Informe o nome completo.');
+    const dados = {
+      nome, exibicao: this.el('fExib').value.trim() || nome,
+      codigo: this.el('fCod').value.trim(),
+      setor: this.el('fSetor').value,
+      jornada: this.el('fJor').value.trim(),
+      situacao: this.el('fSit').value,
+      apelidos: this.el('fApel').value.split(/[;,]/).map(s=>s.trim()).filter(Boolean),
+      foto: this._fotoTemp || ''
+    };
+    if(id){
+      const c = colaboradorPorId(id);
+      logar('colaborador','editar', nome, c.nome, dados.nome, '');
+      Object.assign(c, dados);
+    }else{
+      const dup = DB.colaboradores.find(x=>norm(x.nome)===norm(nome) && x.setor===dados.setor);
+      if(dup) return toast('Já existe colaborador com esse nome neste setor.');
+      DB.colaboradores.push(Object.assign({id:uid(), criado:agora(), origem:'MANUAL'}, dados));
+      logar('colaborador','criar', nome, '', dados.setor, '');
+    }
+    salvar(); this.fecharModal(); this.colaboradores(); toast('Colaborador salvo.');
+  },
+  historicoColaborador(id){
+    const c = colaboradorPorId(id); if(!c) return;
+    const listaEsc = DB.escalas.filter(e=>e.colaboradorId===id || norm(e.nome)===norm(c.nome))
+      .sort((a,b)=>b.data.localeCompare(a.data));
+    this.modal(`<h3>Escalas de ${esc(c.exibicao||c.nome)}</h3>
+      <div class="mini muted" style="margin-bottom:12px">${esc(SETOR_NOME[c.setor]||c.setor)} · ${esc(c.codigo||'sem código')}</div>
+      
+      ${listaEsc.length?`<div class="tbl-scroll"><table><thead><tr><th>Data</th><th>Dia</th><th>Horário</th><th>Situação</th><th>Origem</th></tr></thead>
+      <tbody>${listaEsc.map(e=>`<tr><td>${isoParaBR(e.data)}</td><td>${DIAS_CUR[diaSemana(e.data)]}</td>
+        <td>${e.inicio?e.inicio+' - '+e.fim:'—'}</td><td>${SIT_NOME[e.situacao]||e.situacao}</td>
+        <td class="mini muted">${esc(e.origem||'')}</td></tr>`).join('')}</tbody></table></div>`
+      :'<div class="muted small">Nenhuma escala registrada para este colaborador.</div>'}
+      <div style="text-align:right;margin-top:14px"><button class="btn" onclick="App.fecharModal()">fechar</button></div>`);
+  }
+});
+</script>
+<style>
+#printArea{display:none}
+@media print{ #printArea{display:block!important} }
+</style>
+<script>
+/* =========================================================================
+   INFORMATIVO · PUBLICAÇÃO · SOBREAVISO · FERIADOS · HISTÓRICO
+   ========================================================================= */
+Object.assign(App, {
+
+  infTipo: 'fds',
+  infData: null,
+  infSetores: null,
+
+  /* ---------------- seleção ---------------- */
+  informativo(){
+    if(!this.infData){
+      const seg = segDaSemana(hojeISO());
+      this.infData = diaSemana(hojeISO())===0 ? addDias(hojeISO(),-1) : addDias(seg,5);
+    }
+    const datas = this.datasDoInformativo();
+    const todos = SETORES;
+    if(!this.infSetores) this.infSetores = todos.slice();
+    const snap = this.montarSnapshot(datas);
+    const previa = this.renderSnapshot(snap);
+
+    let h = `<div class="card no-print"><div class="hd"><h3>Gerador de informativo</h3>
+      <div class="acoes">
+        <button class="btn pri" onclick="App.publicar()">PUBLICAR INFORMATIVO</button>
+      </div></div>
+      <div class="bd">
+        <div class="sel">
+          <div class="campo" style="max-width:230px"><label class="f">Tipo</label>
+            <select onchange="App.infTipo=this.value;App.informativo()">
+              <option value="fds" ${this.infTipo==='fds'?'selected':''}>Final de semana</option>
+              <option value="dia" ${this.infTipo==='dia'?'selected':''}>Dia específico</option>
+              <option value="feriado" ${this.infTipo==='feriado'?'selected':''}>Feriado</option>
+            </select></div>
+          <div class="campo" style="max-width:200px"><label class="f">${this.infTipo==='fds'?'Sábado de referência':'Data'}</label>
+            <input type="date" value="${this.infTipo==='fds'?this.infData:this.infData}" onchange="App.infData=this.value;App.informativo()"></div>
+          <div class="campo" style="max-width:170px"><label class="f">Ajustes</label>
+            <div style="display:flex;gap:6px">
+              <button class="btn sm" onclick="App.infData=App.add(  App.infTipo==='fds'?-7:-1);App.informativo()">‹</button>
+              <button class="btn sm" onclick="App.infData=App.hoje();App.informativo()">atual</button>
+              <button class="btn sm" onclick="App.infData=App.add(App.infTipo==='fds'?7:1);App.informativo()">›</button>
+            </div></div>
+        </div>
+        <div class="hr-sep"></div>
+        <label class="f">Setores exibidos</label>
+        <div style="display:flex;gap:14px;flex-wrap:wrap">
+          ${todos.map(s=>`<label class="small" style="display:flex;gap:6px;align-items:center;cursor:pointer">
+            <input type="checkbox" ${this.infSetores.includes(s)?'checked':''} onchange="App.toggleSetor('${s}',this.checked)">
+            ${esc(SETOR_NOME[s])}</label>`).join('')}
+        </div>
+        <div class="aviso i" style="margin:14px 0 0"><div>Setores sem expediente na data <b>não geram quadro</b>.
+        Sobreaviso de Rede é puxado automaticamente do período semanal que cobre a data; se não existir, aparece “Sobreaviso não informado”.</div></div>
+      </div></div>
+
+      <div class="card no-print"><div class="hd"><h3>Ações</h3></div><div class="bd" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="App.imprimir()">Imprimir / PDF (A4)</button>
+        <button class="btn" onclick="App.copiarLink()">Copiar link de compartilhamento</button>
+        <button class="btn" onclick="App.enviarWhats()">Compartilhar no WhatsApp</button>
+        <button class="btn" onclick="App.baixarInformativo()">Baixar informativo (HTML)</button>
+      </div></div>
+
+      <div class="small muted no-print" style="margin-bottom:8px;font-weight:700">Pré-visualização</div>
+      <div id="previaInformativo">${previa}</div>`;
+
+    this.el('view-informativo').innerHTML = h;
+    this._snap = snap;
+  },
+  add(n){ return addDias(this.infData, n); },
+  hoje(){ return hojeISO(); },
+  toggleSetor(s, on){
+    if(on){ if(!this.infSetores.includes(s)) this.infSetores.push(s); }
+    else this.infSetores = this.infSetores.filter(x=>x!==s);
+    this.informativo();
+  },
+  datasDoInformativo(){
+    if(this.infTipo==='fds'){
+      const sab = diaSemana(this.infData)===0 ? addDias(this.infData,-1) : this.infData;
+      return [sab, addDias(sab,1)];
+    }
+    return [this.infData];
+  },
+  abrirInformativo(a, b){
+    this.infTipo='fds'; this.infData = a; this.ir('informativo');
+  },
+
+  /* ---------------- montar dados do informativo ---------------- */
+  montarSnapshot(datas){
+    const bloqueios = [];
+    const blocos = [];
+    let sobre = null, feriado = null;
+
+    datas.forEach((data, idx)=>{
+      const fer = this.feriadoEm(data);
+      if(fer) feriado = fer;
+      const trabalhos = this.trabalhosDoDia(data).filter(e=>this.infSetores.includes(e.setor));
+      const porSetor = new Map();
+      trabalhos.forEach(e=>{
+        if(!porSetor.has(e.setor)) porSetor.set(e.setor, []);
+        porSetor.get(e.setor).push(e);
+      });
+      SETORES.filter(s=>s!=='SOBREAVISO').forEach(setor=>{
+        const lista = porSetor.get(setor);
+        if(!lista || !lista.length) return;
+        blocos.push({
+          data, setor,
+          horarios: this.agruparPorHorario(lista).map(g=>({
+            inicio: g.inicio, fim: g.fim,
+            pessoas: g.pessoas.map(p=>{
+              const c = p.colaboradorId ? colaboradorPorId(p.colaboradorId) : null;
+              return {nome: this.nomeDe(p), iniciais: iniciais(this.nomeDe(p)), foto: c?c.foto:''};
+            })
+          }))
+        });
+      });
+      if(!sobre && this.infSetores.includes('SOBREAVISO')){
+        const s = this.sobreavisoVigente(data);
+        if(s) sobre = {ini:s.ini, fim:s.fim, tecnicos:s.tecnicos.map(t=>{
+          const c = acharColaborador(t,'MANUTENCAO');
+          return {nome:t, iniciais:iniciais(t), foto:c?c.foto:''};
+        })};
+      }
+      /* ausências registradas nas datas */
+      DB.ausencias.filter(a=>a.data===data).forEach(a=>bloqueios.push({data, nome:a.nome, tipo:a.tipo, motivo:a.motivo}));
+    });
+
+    let titulo;
+    if(this.infTipo==='fds'){
+      const a = isoParaBR(datas[0]).slice(0,5);
+      const b = isoParaBR(datas[1]).slice(0,5);
+      titulo = `ESCALA DO FINAL DE SEMANA — ${a} E ${b}`;
+    } else if(this.infTipo==='feriado'){
+      titulo = `FERIADO — ${isoParaBR(datas[0])}${feriado?' — '+String(feriado.nome).toUpperCase():''}`;
+    } else {
+      titulo = `ESCALA DO DIA — ${isoParaBR(datas[0])}`;
+    }
+    return {titulo, datas, blocos, sobre, feriado: feriado?feriado.nome:null, gerado:agora()};
+  },
+
+  /* ---------------- render ---------------- */
+  renderSnapshot(snap){
+    const dias = snap.datas;
+    let h = `<div class="infor">
+      <div class="capa">
+        <div class="sub">Arroba Banda Larga · Comunicação interna</div>
+        <h2>${esc(snap.titulo)}</h2>
+        <div class="faixa"></div>
+      </div>
+      <div class="corpo">`;
+
+    /* sobreaviso */
+    h += `<div class="bloco"><div class="bt">ESCALA SOBREAVISO REDE
+      ${snap.sobre?`<span class="dta">${isoParaBR(snap.sobre.ini)} A ${isoParaBR(snap.sobre.fim)}</span>`:''}</div>`;
+    if(snap.sobre && snap.sobre.tecnicos.length){
+      h += `<div class="faixa-h"><div class="slots">${snap.sobre.tecnicos.map(t=>`
+        <div class="pessoa">${t.foto?`<div class="av"><img src="${t.foto}" alt=""></div>`:`<div class="av"><b>${esc(t.iniciais)}</b></div>`}
+        <div class="nm">${esc(t.nome)}</div></div>`).join('')}</div></div>`;
+    }else{
+      h += `<div class="vazio">Sobreaviso não informado para o período.</div>`;
+    }
+    h += `</div>`;
+
+    /* por dia / setor */
+    dias.forEach(data=>{
+      const doDia = snap.blocos.filter(b=>b.data===data);
+      const setoresNoDia = [...new Set(doDia.map(b=>b.setor))];
+      if(!doDia.length){
+        h += `<div class="bloco"><div class="bt">${esc(nomeDia(data).toUpperCase())} — ${isoParaBR(data)}
+          <span class="dta">SEM EXPEDIENTE</span></div><div class="vazio">Nenhum setor com expediente nesta data.</div></div>`;
+        return;
+      }
+      SETORES.filter(s=>s!=='SOBREAVISO' && setoresNoDia.includes(s)).forEach(setor=>{
+        const b = doDia.find(x=>x.setor===setor);
+        h += `<div class="bloco"><div class="bt">${esc(SETOR_NOME[setor].toUpperCase())} — ${esc(nomeDia(data).toUpperCase())}
+          <span class="dta">${isoParaBR(data)}</span></div>`;
+        b.horarios.forEach(g=>{
+          h += `<div class="faixa-h">
+            <span class="hr">${g.inicio?`${g.inicio} ÀS ${g.fim}`:'HORÁRIO NÃO INFORMADO'}</span>
+            <div class="slots">${g.pessoas.map(p=>`
+              <div class="pessoa">${p.foto?`<div class="av"><img src="${p.foto}" alt=""></div>`:`<div class="av"><b>${esc(p.iniciais)}</b></div>`}
+              <div class="nm">${esc(p.nome)}</div></div>`).join('')}</div>
+          </div>`;
+        });
+        h += `</div>`;
+      });
+    });
+
+    h += `<div class="mini muted" style="text-align:center;margin-top:10px">
+      Gerado em ${esc(snap.gerado)} · Painel de Escalas CSC — Arroba Banda Larga</div>`;
+    h += `</div></div>`;
+    return h;
+  },
+
+  /* ---------------- imprimir / pdf ---------------- */
+  imprimir(){
+    const html = this.renderSnapshot(this._snap || this.montarSnapshot(this.datasDoInformativo()));
+    let area = this.el('printArea');
+    if(!area){ area = document.createElement('div'); area.id='printArea'; document.body.appendChild(area); }
+    area.innerHTML = html;
+    setTimeout(()=>window.print(), 120);
+  },
+
+  /* ---------------- publicar ---------------- */
+  publicar(){
+    const snap = this.montarSnapshot(this.datasDoInformativo());
+    const pub = {id:uid(), tipo:this.infTipo, titulo:snap.titulo, datas:snap.datas,
+      criado:agora(), usuario:DB.config.usuario, snapshot:snap};
+    DB.publicacoes.unshift(pub);
+    snap.blocos.forEach(b=>b.pessoas);
+    DB.escalas.forEach(e=>{ if(snap.datas.includes(e.data)) e.publicado = true; });
+    logar('publicação','publicar', snap.titulo, '', `${snap.blocos.length} quadro(s)`, '');
+    salvar();
+    this.modal(`<h3>Informativo publicado</h3>
+      <div class="aviso s"><div>“${esc(snap.titulo)}” foi gerado e está disponível para consulta.</div></div>
+      <div style="display:flex;gap:8px;flex-direction:column">
+        <button class="btn pri" onclick="App.copiarLink('${pub.id}')">Copiar link de compartilhamento</button>
+        <button class="btn" onclick="App.enviarWhats('${pub.id}')">Compartilhar no WhatsApp</button>
+        <button class="btn" onclick="App.baixarInformativo('${pub.id}')">Baixar informativo (HTML)</button>
+        <button class="btn" onclick="App.imprimir()">Imprimir / PDF</button>
+        <button class="btn" onclick="App.fecharModal();App.ir('publicacoes')">Ver publicações</button>
+      </div>`);
+    this.publicacoes();
+  },
+  linkDe(pub){
+    const dados = LZString.compressToEncodedURIComponent(JSON.stringify(pub.snapshot));
+    return `${location.origin}${location.pathname}#p=${dados}`;
+  },
+  copiarLink(id){
+    const pub = id ? DB.publicacoes.find(p=>p.id===id) : DB.publicacoes[0];
+    if(!pub) return toast('Nada publicado ainda.');
+    const link = this.linkDe(pub);
+    navigator.clipboard.writeText(link).then(()=>toast('Link copiado.'))
+      .catch(()=>{ this.modal(`<h3>Link</h3><textarea rows="6" onclick="this.select()">${esc(link)}</textarea>
+        <div style="text-align:right;margin-top:10px"><button class="btn" onclick="App.fecharModal()">fechar</button></div>`); });
+  },
+  enviarWhats(id){
+    const pub = id ? DB.publicacoes.find(p=>p.id===id) : (DB.publicacoes[0] || null);
+    const snap = pub ? pub.snapshot : (this._snap || this.montarSnapshot(this.datasDoInformativo()));
+    let txt = `*${snap.titulo}*\n`;
+    if(snap.sobre) txt += `\n*Sobreaviso Rede* ${isoParaBR(snap.sobre.ini)} a ${isoParaBR(snap.sobre.fim)}\n${snap.sobre.tecnicos.map(t=>t.nome).join(' / ')}\n`;
+    snap.blocos.forEach(b=>{
+      txt += `\n*${(SETOR_NOME[b.setor]||b.setor).toUpperCase()} — ${nomeDia(b.data).toUpperCase()}*\n`;
+      b.horarios.forEach(g=>{ txt += `${g.inicio?`${g.inicio} às ${g.fim}`:'horário não informado'}: ${g.pessoas.map(p=>p.nome).join(', ')}\n`; });
+    });
+    if(pub) txt += `\nInformativo completo: ${this.linkDe(pub)}`;
+    window.open('https://wa.me/?text='+encodeURIComponent(txt), '_blank');
+  },
+  baixarInformativo(id){
+    const pub = id ? DB.publicacoes.find(p=>p.id===id) : null;
+    const snap = pub ? pub.snapshot : (this._snap || this.montarSnapshot(this.datasDoInformativo()));
+    const css = `body{font-family:"Segoe UI",Roboto,Arial,sans-serif;background:#F4F5FA;margin:0;padding:20px;color:#313131}
+      .infor{max-width:900px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden}
+      .capa{background:#00439C;color:#fff;padding:26px 22px;text-align:center}
+      .capa .sub{font-size:11px;letter-spacing:2.4px;text-transform:uppercase;opacity:.8;font-weight:700}
+      .capa h2{font-size:23px;margin:8px 0 0}
+      .faixa{width:78px;height:4px;background:#FBB900;border-radius:99px;margin:12px auto 0}
+      .corpo{padding:18px}
+      .bloco{border:1px solid #E3E6EF;border-radius:10px;overflow:hidden;margin-bottom:14px}
+      .bt{background:#00439C;color:#fff;padding:9px 14px;font-size:12px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase}
+      .dta{float:right;font-size:10px;opacity:.85}
+      .faixa-h{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid #E3E6EF;flex-wrap:wrap}
+      .hr{background:#FBB900;color:#3A2C00;font-weight:800;font-size:12px;padding:5px 11px;border-radius:7px}
+      .slots{display:flex;flex-wrap:wrap;gap:12px}
+      .pessoa{display:flex;flex-direction:column;align-items:center;gap:6px;width:78px;text-align:center}
+      .pessoa .nm{font-size:11px;font-weight:600}
+      .av{width:52px;height:52px;border-radius:50%;overflow:hidden;background:#E8EFFA;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 0 0 1px #E3E6EF}
+      .av img{width:100%;height:100%;object-fit:cover;object-position:center 30%}
+      .av b{color:#00439C;font-size:16px;font-weight:800}
+      .vazio{padding:14px;color:#6B7280;font-size:13px}
+      .mini{font-size:11px;color:#6B7280;text-align:center;margin-top:10px}`;
+    const doc = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>${esc(snap.titulo)}</title><style>${css}</style></head><body>${this.renderSnapshot(snap)}</body></html>`;
+    const blob = new Blob([doc], {type:'text/html;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `informativo-${snap.datas.join('_')}.html`;
+    a.click();
+  },
+
+  /* ---------------- leitura pública ---------------- */
+  abrirPublicado(payload){
+    let snap;
+    try{ snap = JSON.parse(LZString.decompressFromEncodedURIComponent(payload)); }
+    catch(e){ document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif">Link inválido ou incompleto.</div>'; return; }
+    if(!snap){ document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif">Link inválido.</div>'; return; }
+    document.body.innerHTML = `<div class="wrap" style="max-width:960px">
+      <div style="margin-bottom:12px" class="mini muted">Informativo publicado · somente leitura</div>
+      ${this.renderSnapshot(snap)}
+      <div class="mini muted" style="text-align:center;margin-top:16px">Painel de Escalas CSC — Arroba Banda Larga</div>
+    </div>`;
+  },
+
+  /* ---------------- publicações ---------------- */
+  publicacoes(){
+    const pubs = DB.publicacoes;
+    let h = `<div class="card"><div class="hd"><h3>Publicações</h3>
+      <div class="acoes"><button class="btn pri" onclick="App.ir('informativo')">novo informativo</button></div></div>
+      <div class="bd">
+      ${pubs.length?`<div class="list">${pubs.map(p=>`
+        <div class="li"><div style="flex:1">
+          <div class="nm">${esc(p.titulo)}</div>
+          <div class="mini muted">${esc(p.criado)} · ${esc(p.usuario)} · ${p.datas.map(isoParaBR).join(' e ')}</div>
+        </div>
+        <div class="dir">
+          <button class="btn sm" onclick="App.verPublicacao('${p.id}')">ver</button>
+          <button class="btn sm" onclick="App.copiarLink('${p.id}')">link</button>
+          <button class="btn sm" onclick="App.baixarInformativo('${p.id}')">HTML</button>
+          <button class="btn sm dg" onclick="App.excluirPublicacao('${p.id}')">×</button>
+        </div></div>`).join('')}</div>`
+      :'<div class="muted small">Nenhum informativo publicado ainda. Gere um informativo e clique em PUBLICAR INFORMATIVO.</div>'}
+      </div></div>`;
+    this.el('view-publicacoes').innerHTML = h;
+  },
+  verPublicacao(id){
+    const p = DB.publicacoes.find(x=>x.id===id); if(!p) return;
+    this.modal(`<h3>${esc(p.titulo)}</h3>
+      <div class="mini muted" style="margin-bottom:10px">${esc(p.criado)} · republicado a partir da escala conferida</div>
+      <div style="max-height:60vh;overflow:auto">${this.renderSnapshot(p.snapshot)}</div>
+      <div style="text-align:right;margin-top:12px">
+        <button class="btn pri" onclick="App.fecharModal()">fechar</button></div>`);
+  },
+  excluirPublicacao(id){
+    if(!confirm('Excluir esta publicação?')) return;
+    const p = DB.publicacoes.find(x=>x.id===id);
+    logar('publicação','excluir', p?p.titulo:'', '', '', '');
+    DB.publicacoes = DB.publicacoes.filter(x=>x.id!==id);
+    salvar(); this.publicacoes();
+  },
+
+  /* ---------------- sobreaviso e feriados ---------------- */
+  sobreaviso(){
+    let h = `<div class="card"><div class="hd"><h3>Sobreaviso de Rede</h3>
+      <div class="acoes"><button class="btn pri" onclick="App.formSobreaviso()">+ Novo período</button></div></div>
+      <div class="bd">
+        <div class="aviso i"><div>O sobreaviso é semanal e é reaproveitado automaticamente no informativo de sábado, domingo e feriados abrangidos pelo período. Sobreaviso e Projeto são a mesma escala.</div></div>
+        ${DB.sobreavisos.length?`<div class="tbl-scroll"><table><thead><tr>
+          <th>Período</th><th>Dias</th><th>Técnicos</th><th>Observações</th><th></th></tr></thead><tbody>
+          ${DB.sobreavisos.slice().sort((a,b)=>b.ini.localeCompare(a.ini)).map(s=>`<tr>
+            <td>${isoParaBR(s.ini)} a ${isoParaBR(s.fim)}</td>
+            <td>${s.ini} a ${s.fim}</td>
+            <td>${s.tecnicos.map(t=>{
+              const c = acharColaborador(t,'MANUTENCAO');
+              return `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:10px">
+                ${this.avatar(c,t,'sm')}<span class="small">${esc(t)}</span></span>`;}).join('')}</td>
+            <td class="small muted">${esc(s.obs||'')}</td>
+            <td style="white-space:nowrap">
+              <button class="btn sm" onclick="App.formSobreaviso('${s.id}')">editar</button>
+              <button class="btn sm dg" onclick="App.excluirSobreaviso('${s.id}')">×</button></td>
+          </tr>`).join('')}</tbody></table></div>`
+        :'<div class="muted small">Nenhum período cadastrado. Sem período, o informativo exibe “Sobreaviso não informado”.</div>'}
+      </div></div>
+
+      <div class="card"><div class="hd"><h3>Feriados</h3>
+        <div class="acoes"><button class="btn pri" onclick="App.formFeriado()">+ Novo feriado</button></div></div>
+        <div class="bd">
+          ${DB.feriados.length?`<div class="tbl-scroll"><table><thead><tr>
+            <th>Data</th><th>Dia</th><th>Feriado</th><th>Escalados</th><th></th></tr></thead><tbody>
+            ${DB.feriados.slice().sort((a,b)=>a.data.localeCompare(b.data)).map(f=>{
+              const n = this.trabalhosDoDia(f.data).length;
+              return `<tr><td>${isoParaBR(f.data)}</td><td>${DIAS_SEM[diaSemana(f.data)]}</td>
+                <td>${esc(f.nome)}</td><td><span class="bg ${n?'vd':'cz'}">${n}</span></td>
+                <td style="white-space:nowrap">
+                  <button class="btn sm" onclick="App.abrirFeriado('${f.data}')">informativo</button>
+                  <button class="btn sm dg" onclick="App.excluirFeriado('${f.id}')">×</button></td></tr>`;}).join('')}
+            </tbody></table></div>`
+          :'<div class="muted small">Nenhum feriado cadastrado.</div>'}
+        </div></div>
+
+      <div class="card"><div class="hd"><h3>Ausências, atestados e trocas</h3>
+        <div class="acoes"><button class="btn pri" onclick="App.formAusencia()">+ Registrar</button></div></div>
+        <div class="bd">
+          <div class="aviso w"><div>Registrar uma ausência retira o colaborador apenas daquela data. O cadastro, a foto e as demais escalas são preservados.</div></div>
+          ${DB.ausencias.length?`<div class="tbl-scroll"><table><thead><tr>
+            <th>Data</th><th>Colaborador</th><th>Tipo</th><th>Motivo</th><th>Registrado</th><th></th></tr></thead><tbody>
+            ${DB.ausencias.slice().sort((a,b)=>b.data.localeCompare(a.data)).map(a=>`<tr>
+              <td>${isoParaBR(a.data)}</td><td>${esc(a.nome)}</td>
+              <td><span class="bg lr">${esc(a.tipo)}</span></td><td class="small">${esc(a.motivo||'')}</td>
+              <td class="mini muted">${esc(a.registro)}</td>
+              <td><button class="btn sm dg" onclick="App.excluirAusencia('${a.id}')">×</button></td></tr>`).join('')}
+            </tbody></table></div>`
+          :'<div class="muted small">Nenhuma ausência registrada.</div>'}
+        </div></div>`;
+    this.el('view-sobreaviso').innerHTML = h;
+  },
+
+  formSobreaviso(id){
+    const s = id ? DB.sobreavisos.find(x=>x.id===id) : {id:'', ini:hojeISO(), fim:addDias(hojeISO(),6), tecnicos:[], obs:''};
+    const seg = segDaSemana(hojeISO());
+    const pessoas = DB.colaboradores.filter(c=>c.situacao!=='inativo');
+    this.modal(`<h3>${id?'Editar':'Novo'} período de sobreaviso</h3>
+      <div class="grid g2">
+        <div class="campo"><label class="f">Data inicial</label><input type="date" id="sIni" value="${s.ini}"></div>
+        <div class="campo"><label class="f">Data final</label><input type="date" id="sFim" value="${s.fim}"></div>
+      </div>
+      <div class="campo"><label class="f">Técnicos responsáveis</label>
+        <div style="max-height:190px;overflow:auto;border:1px solid var(--cinza-bd);border-radius:9px;padding:8px">
+        ${pessoas.map(c=>`<label class="small" style="display:flex;gap:8px;align-items:center;padding:4px">
+          <input type="checkbox" class="sTec" value="${esc(c.nome)}" ${s.tecnicos.includes(c.nome)?'checked':''}>
+          ${this.avatar(c,c.nome,'sm')} ${esc(c.nome)} <span class="mini muted">${esc(SETOR_NOME[c.setor])}</span></label>`).join('')}
+        </div></div>
+      <div class="campo"><label class="f">Observações</label><input type="text" id="sObs" value="${esc(s.obs||'')}"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" onclick="App.fecharModal()">cancelar</button>
+        <button class="btn pri" onclick="App.salvarSobreaviso('${id||''}')">salvar</button>
+      </div>`);
+  },
+  salvarSobreaviso(id){
+    const ini = this.el('sIni').value, fim = this.el('sFim').value;
+    const tecnicos = [...document.querySelectorAll('.sTec:checked')].map(x=>x.value);
+    if(!ini || !fim) return toast('Informe as datas.');
+    if(fim < ini) return toast('Data final anterior à inicial.');
+    if(!tecnicos.length) return toast('Selecione ao menos um técnico.');
+    const dados = {ini, fim, tecnicos, obs:this.el('sObs').value.trim()};
+    if(id){ Object.assign(DB.sobreavisos.find(x=>x.id===id), dados); logar('sobreaviso','editar', `${ini} a ${fim}`,'','',''); }
+    else { DB.sobreavisos.push(Object.assign({id:uid()}, dados)); logar('sobreaviso','criar', `${ini} a ${fim}`,'','',''); }
+    salvar(); this.fecharModal(); this.sobreaviso(); toast('Sobreaviso salvo.');
+  },
+  excluirSobreaviso(id){
+    if(!confirm('Excluir este período de sobreaviso?')) return;
+    DB.sobreavisos = DB.sobreavisos.filter(s=>s.id!==id); salvar(); this.sobreaviso();
+  },
+
+  formFeriado(){
+    this.modal(`<h3>Novo feriado</h3>
+      <div class="campo"><label class="f">Data</label><input type="date" id="fData" value="${hojeISO()}"></div>
+      <div class="campo"><label class="f">Nome do feriado</label><input type="text" id="fNomeFer" placeholder="DIA DA CONSCIÊNCIA NEGRA"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" onclick="App.fecharModal()">cancelar</button>
+        <button class="btn pri" onclick="App.salvarFeriado()">salvar</button></div>`);
+  },
+  salvarFeriado(){
+    const data = this.el('fData').value, nome = this.el('fNomeFer').value.trim();
+    if(!data || !nome) return toast('Informe data e nome.');
+    if(DB.feriados.some(f=>f.data===data)) return toast('Já existe feriado cadastrado nesta data.');
+    DB.feriados.push({id:uid(), data, nome});
+    logar('feriado','criar', `${isoParaBR(data)} ${nome}`,'','','');
+    salvar(); this.fecharModal(); this.sobreaviso(); toast('Feriado cadastrado.');
+  },
+  excluirFeriado(id){
+    if(!confirm('Excluir este feriado?')) return;
+    DB.feriados = DB.feriados.filter(f=>f.id!==id); salvar(); this.sobreaviso();
+  },
+  abrirFeriado(data){ this.infTipo='feriado'; this.infData=data; this.ir('informativo'); },
+
+  formAusencia(){
+    const pessoas = DB.colaboradores.filter(c=>c.situacao!=='inativo');
+    this.modal(`<h3>Registrar ausência</h3>
+      <div class="campo"><label class="f">Data</label><input type="date" id="aData" value="${hojeISO()}"></div>
+      <div class="campo"><label class="f">Colaborador</label>
+        <select id="aColab">${pessoas.map(c=>`<option value="${esc(c.nome)}">${esc(c.nome)} — ${esc(SETOR_NOME[c.setor])}</option>`).join('')}</select></div>
+      <div class="campo"><label class="f">Tipo</label>
+        <select id="aTipo">${['ATESTADO','FERIAS','FOLGA','TROCA','SUBSTITUICAO','AUSENCIA'].map(t=>`<option value="${t}">${SIT_NOME[t]}</option>`).join('')}</select></div>
+      <div class="campo"><label class="f">Motivo</label><input type="text" id="aMotivo" placeholder="atestado apresentado em..."></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" onclick="App.fecharModal()">cancelar</button>
+        <button class="btn pri" onclick="App.salvarAusencia()">registrar</button></div>`);
+  },
+  salvarAusencia(){
+    const data = this.el('aData').value, nome = this.el('aColab').value,
+      tipo = this.el('aTipo').value, motivo = this.el('aMotivo').value.trim();
+    if(!data || !nome) return toast('Informe data e colaborador.');
+    const antes = DB.escalas.filter(e=>e.data===data && norm(e.nome)===norm(nome));
+    DB.ausencias.push({id:uid(), data, nome, tipo, motivo, usuario:DB.config.usuario, registro:agora()});
+    antes.forEach(e=>{ e.situacao = tipo; e.inicio=''; e.fim=''; });
+    logar('ausência','registrar', `${nome} em ${isoParaBR(data)}`, `${antes.length} turno(s)`, tipo, motivo);
+    salvar(); this.fecharModal(); this.sobreaviso();
+    toast(`Ausência registrada${antes.length?` e ${antes.length} turno(s) ajustado(s) apenas nesta data`:''}.`);
+  },
+  excluirAusencia(id){ DB.ausencias = DB.ausencias.filter(a=>a.id!==id); salvar(); this.sobreaviso(); },
+
+  /* ---------------- histórico ---------------- */
+  historico(){
+    const h = `<div class="card"><div class="hd"><h3>Histórico de alterações</h3>
+      <div class="acoes"><button class="btn sm" onclick="App.exportarTudo()">backup JSON</button></div></div>
+      <div class="bd">
+      ${DB.historico.length?`<div class="tbl-scroll"><table><thead><tr>
+        <th>Data/hora</th><th>Usuário</th><th>Entidade</th><th>Ação</th><th>Alvo</th><th>Antes</th><th>Depois</th><th>Motivo</th>
+        </tr></thead><tbody>${DB.historico.slice(0,300).map(x=>`<tr>
+          <td class="mini">${esc(x.data)}</td><td class="small">${esc(x.usuario)}</td>
+          <td><span class="bg az">${esc(x.entidade)}</span></td><td class="small">${esc(x.acao)}</td>
+          <td class="small">${esc(x.alvo)}</td><td class="mini muted">${esc(x.antes)}</td>
+          <td class="mini">${esc(x.depois)}</td><td class="mini muted">${esc(x.motivo)}</td></tr>`).join('')}
+        </tbody></table></div>`
+      :'<div class="muted small">Nenhuma alteração registrada.</div>'}
+      </div></div>`;
+    this.el('view-historico').innerHTML = h;
+  }
+});
+
+/* ---------------- start ---------------- */
+document.addEventListener('DOMContentLoaded', ()=>App.init());
+</script>
+</body>
+</html>
